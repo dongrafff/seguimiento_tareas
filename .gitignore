@@ -1,0 +1,14 @@
+# Python / entorno (por si se añade tooling)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Worktrees y editor
+.worktrees/
+.vscode/

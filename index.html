@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestión de Tareas · Seguimiento por Contraparte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* Light theme — refined */
+    --bg:#eef1f5;--panel:#ffffff;--panel-2:#f5f7fa;--line:#d8dee7;
+    --txt:#1f2a37;--muted:#64748b;--accent:#3b82f6;--accent-soft:#e8f0fa;
+    --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--turq:#06b6d4;
+    --radius:8px;--hover:#e8ecf2;
+    --mono:"SFMono-Regular",ui-monospace,"Cascadia Code",Consolas,monospace;
+    --sans:"Inter","IBM Plex Sans","Source Sans Pro","Manrope",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --cat-color:#8b5cf6;
+  }
+  /* ── MODO OSCURO — Statistical Intelligence Dashboard theme ── */
+  [data-theme="dark"]{
+    --bg:#0e1117;--panel:#161b22;--panel-2:#1b2330;--line:#2e3440;
+    --txt:#f5f5f5;--muted:#aab2bf;--accent:#3b82f6;--accent-soft:#1e3a5f;
+    --ok:#10b981;--warn:#f59e0b;--danger:#ef4444;
+    --cat-color:#8b5cf6;
+    --sidebar:#111827;--hover:#263040;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--txt);font-size:15px;line-height:1.5;transition:background .18s ease-in-out,color .18s ease-in-out}
+  header{padding:14px 26px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;background:var(--panel);box-shadow:0 1px 2px rgba(15,23,42,.08)}
+  header h1{font-size:16px;margin:0;letter-spacing:-0.5px;font-weight:700}
+  header h1 span{color:var(--accent)}
+  .clock{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .countdown{display:flex;flex-direction:column;align-items:flex-end;gap:1px;padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);min-width:128px}
+  .countdown .cd-lbl{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+  .countdown .cd-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent)}
+  .countdown.cerca{border-color:var(--warn);background:#fbf2e1}
+  .countdown.cerca .cd-val{color:var(--warn)}
+  .countdown.venc{border-color:var(--danger);background:#fbe9e7}
+  .countdown.venc .cd-val{color:var(--danger)}
+  [data-theme="dark"] .countdown.cerca{background:#422006}
+  [data-theme="dark"] .countdown.venc{background:#450a0a}
+  .wrap{max-width:1380px;margin:0 auto;padding:24px 26px}
+  .grid{display:grid;grid-template-columns:340px 1fr;gap:22px;align-items:start;transition:grid-template-columns .25s ease}
+  .grid.wide{grid-template-columns:420px 1fr}
+  .grid.wider{grid-template-columns:520px 1fr}
+  @media(max-width:860px){.grid,.grid.wide,.grid.wider{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin:0 0 10px;font-weight:700}
+  label{display:block;font-size:11px;color:var(--muted);margin:0 0 4px;font-weight:600}
+  input,select,textarea{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:7px 10px;font-size:13px;font-family:var(--sans);margin-bottom:10px;transition:border-color .18s ease-in-out,box-shadow .18s ease-in-out}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  textarea{resize:vertical;min-height:60px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  button{cursor:pointer;border:none;border-radius:6px;font-size:12px;font-weight:600;padding:7px 12px;font-family:var(--sans);transition:background .18s ease-in-out,border-color .18s ease-in-out,color .18s ease-in-out}
+  .btn-primary{background:var(--accent);color:#ffffff;width:100%}
+  .btn-primary:hover{background:#2563eb}
+  .btn-sm{padding:4px 8px;font-size:11px;background:var(--panel-2);color:var(--txt);border:1px solid var(--line)}
+  .btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+  /* Estados del botón de sincronización con GitHub */
+  #ghStatus.gh-ok{background:#e6f6ee;border-color:#10b981;color:#047857}
+  [data-theme="dark"] #ghStatus.gh-ok{background:#052e22;border-color:#10b981;color:#34d399}
+  #ghStatus.gh-push{background:#fbf2e1;border-color:#f59e0b;color:#b45309}
+  [data-theme="dark"] #ghStatus.gh-push{background:#422006;border-color:#f59e0b;color:#fbbf24}
+  #ghStatus.gh-err{background:#fbe9e7;border-color:#ef4444;color:#b91c1c}
+  [data-theme="dark"] #ghStatus.gh-err{background:#450a0a;border-color:#ef4444;color:#f87171}
+  .btn-danger:hover{border-color:var(--danger);color:var(--danger)}
+  .btn-ok{background:var(--ok);color:#fff}
+  .btn-ok:hover{background:#176638}
+  .btn-warn{background:var(--warn);color:#fff}
+  .btn-warn:hover{background:#94621a}
+  .btn-icon{background:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:14px;color:var(--muted);cursor:pointer}
+  .btn-icon:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-icon.active{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+
+  .hint-inline{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;font-size:11px}
+  .pa-tag{display:inline-block;min-width:24px;text-align:center;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:1px 5px;font-size:11px;font-weight:700;margin-right:2px}
+
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .toolbar input,.toolbar select{margin:0;width:auto;flex:1;min-width:130px}
+
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{position:sticky;top:0;text-align:left;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:7px 8px;border-bottom:2px solid var(--line);background:var(--panel-2)}
+  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;transition:background .18s ease-in-out}
+  tr:hover td{background:var(--hover)}
+  .letra{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:30px;padding:0 9px;border-radius:7px;background:var(--accent-soft);border:1px solid var(--line);font-family:var(--mono);font-weight:700;font-size:12px;white-space:nowrap;color:var(--accent)}
+  .idserv{font-family:var(--mono);font-size:12px}
+  .cod-cell{display:inline-flex;align-items:center;gap:5px}
+  .cod-txt{font-family:var(--mono);font-size:11px;background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:2px 6px;color:var(--accent);white-space:nowrap}
+  .btn-copy-cod{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:5px;font-size:12px;padding:2px 6px;line-height:1}
+  .btn-copy-cod:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-copy-cod.ok{color:var(--ok);border-color:var(--ok)}
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid transparent}
+  .pill.pend{background:#e8f0fa;color:#1f5fa8;border-color:#cfe0f3}
+  .pill.curso{background:#fbf2e1;color:#9a6313;border-color:#f0e0c0}
+  .pill.list{background:#e6f4ec;color:#1f7a44;border-color:#c8e6d4}
+  .pill.venc{background:#fbe9e7;color:#b3271a;border-color:#f3cfc9}
+
+  .estado-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .btn-detalle{cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--accent);border-radius:6px;font-size:11px;font-weight:600;padding:3px 9px;white-space:nowrap}
+  .btn-detalle:hover{border-color:var(--accent);background:var(--accent-soft)}
+  .detalle-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .detalle-texto{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:13px 15px;margin:0 0 4px;max-height:50vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--sans);font-size:13px;line-height:1.55;color:var(--txt)}
+  .dias{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .dias.neg{color:var(--danger);font-weight:700}
+  .dias.cerca{color:var(--warn)}
+
+  .empty{text-align:center;color:var(--muted);padding:40px 0;font-size:13px}
+  .acts{display:flex;gap:6px;flex-wrap:wrap}
+  .bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--accent-soft);border:1px solid #cfe0f3;border-radius:7px;padding:8px 13px;margin-bottom:12px;font-size:12.5px;font-weight:600;color:var(--accent)}
+  .chk-col{width:34px;text-align:center}
+  td.chk-col input,th.chk-col input{width:15px;height:15px;margin:0;accent-color:var(--accent);cursor:pointer}
+  tr.sel td{background:var(--accent-soft)}
+  tr.fila-venc td{background:#fdf0ee}
+  tr.fila-venc td:first-child{box-shadow:inset 3px 0 0 var(--danger)}
+  tr.fila-venc.sel td{background:#f7e8ef}
+
+  /* Notificaciones */
+  #bell{position:relative;cursor:pointer;font-size:18px;line-height:1;padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2)}
+  #bell:hover{border-color:var(--accent)}
+  #badge{position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px}
+  .notif-panel{position:fixed;top:62px;right:26px;width:340px;max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 12px 32px rgba(15,23,42,.16);z-index:50;display:none}
+  .notif-panel.open{display:block}
+  .notif-head{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .notif-head h3{margin:0;font-size:13px}
+  .notif-head button{background:none;color:var(--muted);font-size:11px;padding:2px 6px}
+  .notif-item{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;gap:11px;align-items:flex-start}
+  .notif-item.unread{background:#fbf3f1}
+  .notif-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);margin-top:6px;flex:none}
+  .notif-dot.read{background:var(--line)}
+  .notif-item .meta{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+  .notif-empty{padding:30px;text-align:center;color:var(--muted);font-size:12px}
+
+  .toast-zone{position:fixed;bottom:22px;right:22px;z-index:60;display:flex;flex-direction:column;gap:10px}
+  .toast{background:var(--panel);border:1px solid var(--danger);border-left:3px solid var(--danger);border-radius:8px;padding:13px 16px;width:300px;box-shadow:0 8px 24px rgba(15,23,42,.18);animation:slide .3s ease}
+  .toast.warn-toast{border-color:var(--warn);border-left-color:var(--warn)}
+  @keyframes slide{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+  .toast strong{display:block;font-size:13px;margin-bottom:3px}
+  .toast span{font-size:12px;color:var(--muted)}
+
+  /* Modal edición */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:80;display:none;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{width:460px;max-width:92vw;max-height:90vh;overflow-y:auto}
+  .modal-foot{display:flex;gap:10px;margin-top:4px}
+  .modal-foot button{flex:1}
+
+  .stat-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .stat{flex:1;min-width:80px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:9px 11px;transition:border-color .18s ease-in-out}
+  .stat .n{font-size:20px;font-weight:700;font-family:var(--mono)}
+  .stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+  .img-tools{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
+  .img-preview{border:1px solid var(--line);border-radius:7px;background:var(--panel-2);padding:8px;margin-bottom:13px;text-align:center}
+  .img-preview img{max-width:100%;max-height:260px;border-radius:5px;display:inline-block}
+  .detalle-img{margin-top:12px;text-align:center}
+  .detalle-img img{max-width:100%;max-height:55vh;border-radius:7px;border:1px solid var(--line)}
+  .detalle-cod{font-family:var(--mono);font-size:12px;color:var(--accent);background:var(--accent-soft);border:1px solid #cfe0f3;border-radius:6px;padding:6px 10px;margin-bottom:10px;display:inline-block}
+
+  .sel-count{float:right;color:var(--accent);font-weight:600;text-transform:none;letter-spacing:0}
+  .id-tools{display:flex;gap:7px;margin-bottom:9px}
+  .id-tools input{margin:0;flex:1}
+  .id-list{max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:7px;background:var(--panel-2);margin-bottom:9px}
+  .id-opt{display:flex;align-items:center;gap:9px;padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12.5px}
+  .id-opt:last-child{border-bottom:none}
+  .id-opt:hover{background:var(--accent-soft)}
+  .id-opt input{width:15px;height:15px;margin:0;accent-color:var(--accent);cursor:pointer}
+  .id-opt.on{color:var(--accent)}
+  .id-list-empty{padding:18px;text-align:center;color:var(--muted);font-size:12px}
+  .id-add{display:flex;gap:7px;margin-bottom:4px}
+  .id-add input{margin:0;flex:1}
+  .file-label{display:block;width:100%}
+  .file-label span{display:block;text-align:center;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:9px;font-size:12px;cursor:pointer;color:var(--txt)}
+  .file-label span:hover{border-color:var(--accent)}
+
+  /* ── PORTABILIDAD: barra de datos ── */
+  .data-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:18px;padding:10px 14px;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius)}
+  .data-bar .lbl{font-size:12px;font-weight:600;color:var(--muted);margin-right:4px}
+  .data-bar .btn-sm{white-space:nowrap}
+  .data-bar .status-ok{color:var(--ok);font-size:11px;font-family:var(--mono);margin-left:auto}
+  .data-bar .status-warn{color:var(--warn);font-size:11px;font-family:var(--mono);margin-left:auto}
+
+  /* ── Recordatorio anticipado ── */
+  .reminder-row{display:flex;gap:11px;align-items:center;margin-bottom:4px}
+  .reminder-row input{margin:0;flex:1}
+
+  /* ── Filtro por prioridad ── */
+  .priority-high{border-left:3px solid var(--danger)}
+  .priority-med{border-left:3px solid var(--warn)}
+  .priority-low{border-left:3px solid var(--ok)}
+  .prio-badge{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+  .prio-badge.high{background:var(--danger)}
+  .prio-badge.med{background:var(--warn)}
+  .prio-badge.low{background:var(--ok)}
+
+  /* ── Búsqueda en detalle ── */
+  .search-highlight{background:#fff3a8;padding:0 2px;border-radius:2px}
+
+  /* ══════ NUEVO v3 ══════ */
+
+  /* ── Toggle modo oscuro (header) ── */
+  #themeToggle{background:none;border:1px solid var(--line);border-radius:7px;padding:5px 10px;font-size:16px;cursor:pointer;line-height:1}
+  #themeToggle:hover{border-color:var(--accent)}
+
+  /* ── Trimestre chip ── */
+  .trimestre-chip{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:.3px;margin-right:3px;vertical-align:middle}
+  .trimestre-t1{background:#d1fae5;color:#065f46;border:1px solid #6ee7b7}
+  .trimestre-t2{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+  .trimestre-t3{background:#ede9fe;color:#6d28d9;border:1px solid #c4b5fd}
+  .trimestre-t4{background:#fce7f3;color:#be185d;border:1px solid #f9a8d4}
+  [data-theme="dark"] .trimestre-t1{background:#022c22;border-color:#047857}
+  [data-theme="dark"] .trimestre-t2{background:#172554;border-color:#1e40af}
+  [data-theme="dark"] .trimestre-t3{background:#2e1065;border-color:#5b21b6}
+  [data-theme="dark"] .trimestre-t4{background:#500724;border-color:#9d174d}
+
+  /* ── Dashboard métricas v3 ── */
+  .dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px}
+  .dash-card{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+  .dash-card .dc-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .dash-card .dc-val{font-size:20px;font-weight:700;font-family:var(--mono)}
+  .dash-card .dc-bar{height:6px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+  .dash-card .dc-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+  .dc-pend{color:var(--accent)}.dc-curso{color:var(--warn)}.dc-list{color:var(--ok)}.dc-venc{color:var(--danger)}
+  .dc-bar-pend{background:var(--accent)}.dc-bar-curso{background:var(--warn)}.dc-bar-list{background:var(--ok)}.dc-bar-venc{background:var(--danger)}
+
+  /* ── Audit log ── */
+  .audit-toggle{text-align:right;margin-bottom:8px}
+  .audit-panel{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:10px 14px;max-height:260px;overflow-y:auto;margin-bottom:16px;font-size:12px;display:none}
+  .audit-panel.open{display:block}
+  .audit-entry{padding:4px 0;border-bottom:1px solid var(--line);display:flex;gap:8px}
+  .audit-entry:last-child{border-bottom:none}
+  .audit-time{font-family:var(--mono);color:var(--muted);white-space:nowrap;min-width:72px;font-size:11px}
+  .audit-action{color:var(--accent);font-weight:600;min-width:60px}
+  .audit-detail{color:var(--txt)}
+
+  /* ── Plantillas ── */
+  .tpl-bar{display:flex;gap:8px;margin-bottom:12px;align-items:center}
+  .tpl-chip{padding:4px 10px;border-radius:16px;font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent);border:1px solid var(--line);cursor:pointer;white-space:nowrap}
+  .tpl-chip:hover{border-color:var(--accent);background:var(--accent);color:#fff}
+  .tpl-chip.is-tpl{background:var(--warn);color:#fff;border-color:var(--warn)}
+
+  /* ── Comentarios ── */
+  .comentarios-box{margin-top:10px;border-top:1px solid var(--line);padding-top:10px}
+  .comentario{background:var(--panel-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:12px}
+  .comentario .cm-time{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:2px}
+  .comentario .cm-text{white-space:pre-wrap;word-break:break-word}
+  .cm-form{display:flex;gap:6px}
+  .cm-form input{margin:0;flex:1}
+
+  /* ── Dependencias ── */
+  .dep-tag{display:inline-block;font-size:10px;padding:1px 6px;border-radius:4px;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-family:var(--mono);margin-right:3px}
+
+  /* ── Atajos hint ── */
+  .shortcuts-hint{position:fixed;bottom:22px;left:22px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--muted);z-index:40;display:none;max-width:260px;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+  .shortcuts-hint.open{display:block}
+  .shortcuts-hint kbd{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:1px 5px;font-family:var(--mono);font-size:10px;margin:0 1px}
+
+  /* ── Prompt inicial de carga de datos ── */
+  .startup-overlay{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:9999;display:flex;align-items:center;justify-content:center}
+  .auto-banner{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);max-width:72vw;z-index:9990;background:#fff;color:#334;border:1px solid #d7dde6;border-left:4px solid #b7c0cd;border-radius:8px;padding:9px 16px;font-size:12.5px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.22);text-align:left}
+  .auto-banner b{color:#1e2a3a}
+  .startup-card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px 32px;max-width:520px;width:92vw;box-shadow:0 16px 48px rgba(0,0,0,.25)}
+  .startup-card h2{margin-top:0;font-size:16px}
+  .startup-card p{font-size:13px;color:var(--muted);line-height:1.6}
+  .startup-card .steps{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:12px 16px;margin:14px 0;font-size:12.5px;line-height:1.7}
+  .startup-card .steps code{background:var(--accent-soft);color:var(--accent);padding:1px 5px;border-radius:3px;font-size:11px}
+  .startup-card .btn-row{display:flex;gap:10px;margin-top:18px}
+  .startup-card .btn-row button{flex:1}
+  .startup-card .file-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center}
+  .startup-card .file-hint strong{color:var(--ok)}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Gestión de Tareas <span>· Contraparte</span></h1>
+  <div style="display:flex;align-items:center;gap:14px">
+    <button class="btn-sm" onclick="cambiarAnchoPanel()" id="panelResizeBtn" title="Ajustar ancho del panel izquierdo">↔ Panel</button>
+    <button class="btn-sm" onclick="descargarArchivoTrimestre()" title="Descargar archivo HTML autocontenido">💾 Descargar archivo</button>
+    <div id="countdown" class="countdown" title="Tiempo hasta el próximo plazo de término">
+      <span class="cd-lbl">Próximo plazo</span>
+      <span class="cd-val" id="cdVal">—</span>
+    </div>
+    <span class="clock" id="clock"></span>
+    <button id="themeToggle" title="Cambiar tema (Ctrl+T)">🌙</button>
+    <div id="bell">🔔<span id="badge">0</span></div>
+  </div>
+</header>
+
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-head">
+    <h3>Notificaciones de plazo</h3>
+    <button onclick="marcarTodasLeidas()">Marcar leídas</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- ── BARRA DE DATOS (portabilidad) ── -->
+  <div class="data-bar">
+    <span class="lbl">💾 Datos:</span>
+    <button class="btn-sm btn-ok" onclick="exportarJSON()">📤 Exportar respaldo</button>
+    <label class="btn-sm" style="cursor:pointer">
+      📥 Importar respaldo
+      <input type="file" id="importFile" accept=".json" onchange="importarJSON(event)" hidden>
+    </label>
+    <button class="btn-sm" onclick="exportarCSV()">📊 Exportar CSV</button>
+    <button class="btn-sm" onclick="exportarPDF()">📄 Exportar PDF</button>
+    <button class="btn-sm" onclick="exportarICS()">📅 Exportar .ics</button>
+    <button class="btn-sm btn-ok" onclick="exportarACarpeta()" title="Guardar datos en carpeta datos/">💾 Guardar en carpeta</button>
+    <button class="btn-sm" onclick="cargarDesdeCarpeta()" title="Cargar datos desde carpeta datos/">📂 Cargar desde carpeta</button>
+    <span id="dataStatus" class="status-ok"></span>
+  </div>
+
+  <!-- ── DASHBOARD MÉTRICAS v3 ── -->
+  <div class="dashboard" id="dashboard">
+    <div class="dash-card"><div class="dc-title">Total</div><div class="dc-val" id="dcTotal">0</div></div>
+    <div class="dash-card"><div class="dc-title">Pendientes</div><div class="dc-val dc-pend" id="dcPend">0</div><div class="dc-bar"><div class="dc-bar-fill dc-bar-pend" id="barPend" style="width:0%"></div></div></div>
+    <div class="dash-card"><div class="dc-title">En curso</div><div class="dc-val dc-curso" id="dcCurso">0</div><div class="dc-bar"><div class="dc-bar-fill dc-bar-curso" id="barCurso" style="width:0%"></div></div></div>
+    <div class="dash-card"><div class="dc-title">Completadas</div><div class="dc-val dc-list" id="dcList">0</div><div class="dc-bar"><div class="dc-bar-fill dc-bar-list" id="barList" style="width:0%"></div></div></div>
+    <div class="dash-card"><div class="dc-title">Vencidas</div><div class="dc-val dc-venc" id="dcVenc">0</div><div class="dc-bar"><div class="dc-bar-fill dc-bar-venc" id="barVenc" style="width:0%"></div></div></div>
+    <div class="dash-card"><div class="dc-title">% Completado</div><div class="dc-val dc-list" id="dcPct">0%</div></div>
+    <div class="dash-card"><div class="dc-title">Alta prioridad</div><div class="dc-val dc-venc" id="dcHigh">0</div></div>
+    <div class="dash-card"><div class="dc-title">Trimestres usados</div><div class="dc-val" id="dcTrimes">0</div></div>
+  </div>
+
+  <!-- ── AUDIT LOG ── -->
+  <div class="audit-toggle">
+    <button class="btn-sm" onclick="toggleAudit()">📋 Historial de cambios <span id="auditArrow">▼</span></button>
+    <button class="btn-sm" onclick="limpiarAudit()" style="margin-left:4px">Limpiar</button>
+  </div>
+  <div class="audit-panel" id="auditPanel"></div>
+
+  <!-- ── PLANTILLAS ── -->
+  <div class="tpl-bar" id="tplBar">
+    <span style="font-size:12px;font-weight:600;color:var(--muted)">⚡ Plantillas:</span>
+    <span id="tplList" style="display:flex;gap:6px;flex-wrap:wrap"></span>
+
+  </div>
+
+  <div class="grid">
+    <!-- Panel de asignación -->
+    <div class="card">
+      <h2>Asignar tarea</h2>
+
+      <label>Grupo (PA) <span class="hint-inline">— 2 primeros dígitos del Contraparte</span></label>
+      <div class="id-tools">
+        <select id="paSelect" onchange="filtrarPorPA()">
+          <option value="">Todos los grupos</option>
+        </select>
+        <button class="btn-sm" onclick="seleccionarGrupoPA(true)">Marcar grupo</button>
+        <button class="btn-sm" onclick="seleccionarGrupoPA(false)">Quitar grupo</button>
+      </div>
+      <div class="id-tools">
+        <button class="btn-sm btn-danger" style="flex:1" onclick="eliminarTareasPorPA()">🗑 Eliminar tareas del grupo PA</button>
+      </div>
+
+      <label>Contrapartes (Contraparte) <span id="selCount" class="sel-count">0 seleccionados</span></label>
+      <div class="id-tools">
+        <input id="idFiltro" placeholder="Filtrar listado..." oninput="renderIdList()" autocomplete="off">
+        <button class="btn-sm" onclick="toggleTodos(true)">Todos</button>
+        <button class="btn-sm" onclick="toggleTodos(false)">Ninguno</button>
+        <button class="btn-sm" onclick="document.getElementById('csvFileInput').click()" title="Cargar lista de clientes desde CSV">📄 Cargar CSV</button>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="cargarCSVClientes(event)">
+      </div>
+      <div id="idList" class="id-list"></div>
+      <div class="id-add">
+        <input id="idNuevo" placeholder="Contraparte (agregar / remover)..." autocomplete="off"
+               onkeydown="if(event.key==='Enter')agregarId()">
+        <button class="btn-sm" onclick="agregarId()">Agregar</button>
+        <button class="btn-sm btn-danger" onclick="removerId()">Remover</button>
+      </div>
+
+      <label>Tarea (nombre)</label>
+      <input id="fLetra" maxlength="20" placeholder="ej: A, Validación, Revisión" autocomplete="off">
+
+      <div class="row2">
+        <div>
+          <label>Plazo (días)</label>
+          <input id="fDias" type="number" min="1" value="5">
+        </div>
+        <div>
+          <label>Inicio</label>
+          <input id="fInicio" type="date">
+        </div>
+      </div>
+
+      <label>Prioridad</label>
+      <select id="fPrioridad">
+        <option value="low">Baja</option>
+        <option value="med" selected>Media</option>
+        <option value="high">Alta</option>
+      </select>
+
+      <!-- Trimestre -->
+      <label>Trimestre</label>
+      <select id="fTrimestre">
+        <option value="T1">📅 T1 (Ene-Mar)</option>
+        <option value="T2">📅 T2 (Abr-Jun)</option>
+        <option value="T3" selected>📅 T3 (Jul-Sep)</option>
+        <option value="T4">📅 T4 (Oct-Dic)</option>
+      </select>
+
+      <!-- NUEVO: Dependencia -->
+      <label>Depende de (código de otra tarea)</label>
+      <input id="fDependencia" placeholder="ej: SEG-020101-260715-ABCD" autocomplete="off">
+
+      <label>Recordar antes (días) <span class="hint-inline">— alerta antes del vencimiento</span></label>
+      <input id="fRecordar" type="number" min="0" max="30" value="2">
+
+      <label>Detalle (opcional)</label>
+      <textarea id="fDetalle" placeholder="Pega el correo completo, con firma. También puedes pegar una imagen con Ctrl+V..." style="min-height:90px"></textarea>
+      <div class="img-tools">
+        <label class="file-label" style="flex:1">
+          <input type="file" id="fImagenFile" accept="image/*" onchange="adjuntarImagenNueva(event)" hidden>
+          <span>Adjuntar imagen / firma…</span>
+        </label>
+        <button class="btn-sm btn-danger" type="button" onclick="quitarImagenNueva()">Quitar</button>
+      </div>
+      <div id="fImgPreview" class="img-preview" style="display:none">
+        <img id="fImgTag" alt="Vista previa">
+      </div>
+
+      <button class="btn-primary" onclick="crearTarea()">Asignar a seleccionados</button>
+    </div>
+
+    <!-- Listado -->
+    <div class="card">
+      <h2>Tareas asignadas</h2>
+      <div class="toolbar">
+        <input id="buscar" placeholder="Buscar por Contraparte o tarea..." oninput="render()">
+        <select id="filtroEstado" onchange="render()">
+          <option value="" selected>Activas (pendiente · en curso · vencida)</option>
+          <option value="all">Todos los estados</option>
+          <option value="pend">Pendiente</option>
+          <option value="curso">En curso</option>
+          <option value="list">Lista</option>
+          <option value="venc">Vencida</option>
+        </select>
+        <select id="filtroPrioridad" onchange="render()">
+          <option value="">Todas las prioridades</option>
+          <option value="high">🔴 Alta</option>
+          <option value="med">🟡 Media</option>
+          <option value="low">🟢 Baja</option>
+        </select>
+        <!-- Filtro por trimestre -->
+        <select id="filtroTrimestre" onchange="render()">
+          <option value="">Todos los trimestres</option>
+          <option value="T1">📅 T1 (Ene-Mar)</option>
+          <option value="T2">📅 T2 (Abr-Jun)</option>
+          <option value="T3">📅 T3 (Jul-Sep)</option>
+          <option value="T4">📅 T4 (Oct-Dic)</option>
+        </select>
+        <button class="btn-icon" title="Atajos de teclado (Ctrl+/)" onclick="toggleShortcutsHint()">⌨️</button>
+      </div>
+      <div class="bulk-bar" id="bulkBar" style="display:none">
+        <span id="bulkCount">0 seleccionadas</span>
+        <div style="display:flex;gap:7px">
+          <button class="btn-sm" onclick="limpiarSelTabla()">Quitar selección</button>
+          <button class="btn-sm btn-danger" onclick="eliminarSeleccionadas()">🗑 Eliminar seleccionadas</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th class="chk-col"><input type="checkbox" id="chkAll" onchange="toggleSelTodas(this.checked)" title="Marcar/desmarcar todas las visibles"></th><th>Tarea</th><th>Contraparte</th><th>Cód. seguimiento</th><th>Plazo</th><th>Restan</th><th>Estado</th><th></th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none">Sin tareas que mostrar.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal edición -->
+<div class="modal-bg" id="modalBg">
+  <div class="card modal">
+    <h2 id="modalTit">Editar tarea</h2>
+    <label>Contraparte</label>
+    <input id="eId" type="text" inputmode="text">
+    <label>Tarea (nombre)</label>
+    <input id="eLetra" maxlength="20">
+    <div class="row2">
+      <div><label>Plazo (días)</label><input id="eDias" type="number" min="1"></div>
+      <div><label>Inicio</label><input id="eInicio" type="date"></div>
+    </div>
+    <label>Estado</label>
+    <select id="eEstado">
+      <option value="pend">Pendiente</option>
+      <option value="curso">En curso</option>
+      <option value="list">Lista (completada)</option>
+    </select>
+    <label>Prioridad</label>
+    <select id="ePrioridad">
+      <option value="low">Baja</option>
+      <option value="med">Media</option>
+      <option value="high">Alta</option>
+    </select>
+    <!-- NUEVO: Trimestre en edición -->
+    <label>Trimestre</label>
+    <select id="eTrimestre">
+      <option value="T1">📅 T1 (Ene-Mar)</option>
+      <option value="T2">📅 T2 (Abr-Jun)</option>
+      <option value="T3">📅 T3 (Jul-Sep)</option>
+      <option value="T4">📅 T4 (Oct-Dic)</option>
+    </select>
+    <!-- NUEVO: Dependencia en edición -->
+    <label>Depende de (código de otra tarea)</label>
+    <input id="eDependencia" placeholder="Código de seguimiento de la tarea dependiente">
+    <label>Recordar antes (días)</label>
+    <input id="eRecordar" type="number" min="0" max="30" value="2">
+    <label>Detalle (correo enviado, instrucciones, etc.)</label>
+    <textarea id="eDetalle" placeholder="Pega aquí el correo completo, con firma. Puedes pegar también una imagen (Ctrl+V) y se adjuntará abajo..." style="min-height:140px"></textarea>
+    <!-- NUEVO: Comentarios en edición -->
+    <div class="comentarios-box" id="comentariosBox">
+      <label>💬 Comentarios</label>
+      <div id="comentariosList"></div>
+      <div class="cm-form">
+        <input id="cmInput" placeholder="Agregar comentario..." onkeydown="if(event.key==='Enter')agregarComentario()">
+        <button class="btn-sm" onclick="agregarComentario()">+</button>
+      </div>
+    </div>
+    <label>Imagen / firma (opcional) <span class="hint-inline">— pega con Ctrl+V en el detalle o adjunta un archivo</span></label>
+    <div class="img-tools">
+      <label class="file-label" style="flex:1">
+        <input type="file" id="eImagenFile" accept="image/*" onchange="adjuntarImagen(event)" hidden>
+        <span>Adjuntar imagen…</span>
+      </label>
+      <button class="btn-sm btn-danger" type="button" onclick="quitarImagen()">Quitar imagen</button>
+    </div>
+    <div id="eImgPreview" class="img-preview" style="display:none">
+      <img id="eImgTag" alt="Vista previa de la imagen adjunta">
+    </div>
+    <div class="modal-foot">
+      <button class="btn-sm" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarEdicion()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal detalle (lectura + copiar) -->
+<div class="modal-bg" id="detalleBg">
+  <div class="card modal">
+    <div class="detalle-head">
+      <h2 id="detalleTit" style="margin:0">Detalle de la tarea</h2>
+      <button class="btn-sm" id="btnCopiar" onclick="copiarDetalle()">Copiar</button>
+    </div>
+    <div id="detalleCod" class="detalle-cod"></div>
+    <!-- NUEVO: Mostrar categoría y dependencia en detalle -->
+    <div id="detalleMeta" style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px"></div>
+    <pre id="detalleTexto" class="detalle-texto"></pre>
+    <div id="detalleImg" class="detalle-img" style="display:none">
+      <img id="detalleImgTag" alt="Imagen adjunta de la tarea">
+    </div>
+    <div class="modal-foot">
+      <button class="btn-sm" onclick="cerrarDetalle()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal plantilla -->
+<div class="modal-bg" id="tplModalBg">
+  <div class="card modal" style="width:380px">
+    <h2>Nueva plantilla</h2>
+    <label>Nombre</label>
+    <input id="tplNombre" placeholder="ej: Revisión mensual">
+    <label>Tarea</label>
+    <input id="tplLetra" placeholder="ej: Revisión mensual">
+    <div class="row2">
+      <div><label>Plazo (días)</label><input id="tplDias" type="number" min="1" value="5"></div>
+      <div><label>Prioridad</label>
+        <select id="tplPrioridad">
+          <option value="low">Baja</option>
+          <option value="med" selected>Media</option>
+          <option value="high">Alta</option>
+        </select>
+      </div>
+    </div>
+    <label>Categoría</label>
+    <select id="tplCategoria">
+      <option value="otro">Sin categoría</option>
+      <option value="admin">📋 Administración</option>
+      <option value="legal">⚖️ Legal</option>
+      <option value="rh">👥 Recursos Humanos</option>
+      <option value="fin">💰 Financiero</option>
+      <option value="tech">🖥 Técnico</option>
+    </select>
+    <label>Detalle</label>
+    <textarea id="tplDetalle" placeholder="Texto reutilizable..."></textarea>
+    <div class="modal-foot">
+      <button class="btn-sm" onclick="cerrarModalPlantilla()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarPlantilla()">Guardar plantilla</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-zone" id="toastZone"></div>
+
+<!-- ── PROMPT INICIAL: Carga de datos desde carpeta ── -->
+<div class="startup-overlay" id="startupOverlay" style="display:none">
+  <div class="startup-card">
+    <h2>📂 Cargar datos del seguimiento</h2>
+    <p>Para restaurar tus tareas, contrapartes y configuraciones guardadas, selecciona el archivo de datos.</p>
+    <div class="steps">
+      <strong>Estructura de carpeta:</strong><br>
+      📁 <code>Seguimiento_tareas/</code><br>
+      &nbsp;&nbsp;├── <code>seguimiento.html</code> ← este archivo<br>
+      &nbsp;&nbsp;└── <code>datos/</code><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;├── <code>datos_T3.json</code> ← tareas y configuración<br>
+      &nbsp;&nbsp;&nbsp;&nbsp;└── <code>imagenes/</code> ← imágenes adjuntas<br><br>
+      <strong>Al copiar la carpeta completa a otro computador,</strong> solo necesitas abrir este HTML y cargar el archivo JSON correspondiente al trimestre.
+    </div>
+    <label class="file-label" style="margin-bottom:6px">
+      <input type="file" id="startupFileInput" accept=".json" onchange="cargarDesdeArchivo(event)" hidden>
+      <span>📂 Seleccionar archivo de datos (.json)</span>
+    </label>
+    <div class="file-hint" id="startupFileHint"></div>
+    <div class="btn-row">
+      <button class="btn-primary" onclick="document.getElementById('startupFileInput').click()">Cargar datos</button>
+      <button class="btn-sm" onclick="iniciarSinDatos()">Comenzar sin datos</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Atajos hint ── -->
+<div class="shortcuts-hint" id="shortcutsHint">
+  <strong>⌨️ Atajos de teclado</strong><br>
+  <kbd>Ctrl</kbd>+<kbd>N</kbd> → Nueva tarea (focus nombre)<br>
+  <kbd>Ctrl</kbd>+<kbd>F</kbd> → Buscar<br>
+  <kbd>Ctrl</kbd>+<kbd>T</kbd> → Modo oscuro<br>
+  <kbd>Ctrl</kbd>+<kbd>S</kbd> → Exportar respaldo<br>
+  <kbd>Ctrl</kbd>+<kbd>P</kbd> → Exportar PDF<br>
+  <kbd>Ctrl</kbd>+<kbd>E</kbd> → Exportar CSV<br>
+  <kbd>Ctrl</kbd>+<kbd>I</kbd> → Exportar .ics<br>
+  <kbd>Ctrl</kbd>+<kbd>/</kbd> → Mostrar/ocultar atajos<br>
+  <kbd>Escape</kbd> → Cerrar modal
+</div>
+
+<script>
+/* ===== SISTEMA DE TRIMESTRE — datos aislados por trimestre ===== */
+/* ===== Variables globales ===== */
+
+/* Persistencia global (sin aislamiento por trimestre) */
+let tareas = [];
+let notifs = [];
+let editId = null;
+
+/* Listado de Contraparte precargado. Editable por el usuario. */
+const Contraparte_DEFAULT = ["020101","020201","020301","020401","050201","050401","050501","050701","050901","051001","053501","080101","080106","080201","080301","080401","080501","080701","081501","081601","081701","083001","083101","083301","090101","090201","090301","090401","090901","091101","091301","091501","091701","099001","099101","100101","100201","100301","100401","100601","100901","101001","190101","190201","190301","300101","300201","990901","250101","250201","250301","250401","320101","320201","320301","320401","320501","320601"];
+let listaIds = [];
+let seleccion = new Set();
+
+/* Plantillas — compartidas globales */
+let plantillas = [];
+
+/* Audit log — global */
+let auditLog = [];
+const MAX_AUDIT = 200;
+
+const store = {
+  loadSilent(){
+    try{
+      const t = JSON.parse(localStorage.getItem('gt_tareas')||'[]');
+      const n = JSON.parse(localStorage.getItem('gt_notifs')||'[]');
+      const li = JSON.parse(localStorage.getItem('gt_listaIds')||'null');
+      const al = JSON.parse(localStorage.getItem('gt_audit')||'[]');
+      const pl = JSON.parse(localStorage.getItem('gt_plantillas')||'[]');
+      return { tareas: t, notifs: n, listaIds: li, auditLog: al, plantillas: pl };
+    }catch(e){ return null; }
+  },
+  load(){
+    try{
+      tareas = JSON.parse(localStorage.getItem('gt_tareas')||'[]');
+      notifs = JSON.parse(localStorage.getItem('gt_notifs')||'[]');
+      const li = JSON.parse(localStorage.getItem('gt_listaIds')||'null');
+      listaIds = (Array.isArray(li) && li.length) ? li : Contraparte_DEFAULT.slice();
+      auditLog = JSON.parse(localStorage.getItem('gt_audit')||'[]');
+      plantillas = JSON.parse(localStorage.getItem('gt_plantillas')||'[]');
+      const tema = localStorage.getItem('gt_tema') || 'light';
+      document.documentElement.setAttribute('data-theme', tema);
+      actualizarBtnTema(tema);
+      // retrocompatibilidad: asignar código, prioridad, trimestre a tareas viejas
+      let cambio=false;
+      tareas.forEach(t=>{
+        if(!t.codigo){ t.codigo = generarCodigo(t.contraparte, t.inicio); cambio=true; }
+        if(!t.prioridad){ t.prioridad = 'med'; cambio=true; }
+        if(t.recordar === undefined){ t.recordar = 2; cambio=true; }
+        if(!t.trimestre){ t.trimestre = 'T3'; cambio=true; }
+        if(!t.comentarios){ t.comentarios = []; cambio=true; }
+        if(!t.dependencia){ t.dependencia = ''; cambio=true; }
+      });
+      if(cambio){ try{ localStorage.setItem('gt_tareas',JSON.stringify(tareas)); }catch(e){} }
+    }catch(e){ tareas=[]; notifs=[]; listaIds=Contraparte_DEFAULT.slice(); plantillas=[]; auditLog=[]; }
+    // Si no hay datos, mostrar wizard de carga inicial
+    if(tareas.length === 0 && listaIds.length > 0){
+      mostrarWizardCargaInicial();
+    }
+  },
+  save(){
+    try{
+      localStorage.setItem('gt_tareas',JSON.stringify(tareas));
+      localStorage.setItem('gt_notifs',JSON.stringify(notifs));
+      localStorage.setItem('gt_listaIds',JSON.stringify(listaIds));
+      localStorage.setItem('gt_audit',JSON.stringify(auditLog));
+      localStorage.setItem('gt_plantillas',JSON.stringify(plantillas));
+      autoGuardarProgramado(); // auto-guardar el .json en la carpeta (debounce)
+    }catch(e){}
+    actualizarDataStatus();
+  }
+};
+
+/* ===== WIZARD DE CARGA INICIAL DE CONTRAPARTES ===== */
+function mostrarWizardCargaInicial(){
+  const yaVisto = sessionStorage.getItem('wizard_inicial');
+  if(yaVisto) return;
+  sessionStorage.setItem('wizard_inicial', '1');
+
+  const totalIds = listaIds.length;
+  const msg = `Bienvenido a Gestión de Tareas Contraparte.\n\nSe han cargado ${totalIds} contrapartes por defecto.\n\n✅ Puedes agregar/remover contrapartes desde el panel izquierdo.\n📋 Cada tarea tendrá su propio trimestre asignado (1T-4T).\n💾 Usa "Exportar respaldo" para llevar tus datos a otra máquina.`;
+  
+  // Crear modal de bienvenida
+  const overlay = document.createElement('div');
+  overlay.id = 'wizardOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer';
+  overlay.onclick = function(e){ if(e.target === this) this.remove(); };
+  overlay.innerHTML = `
+    <div class="card modal" style="width:480px;max-width:92vw;cursor:default" onclick="event.stopPropagation()">
+      <h2 style="margin-top:0">Gestión de Tareas Contraparte</h2>
+      <div style="font-size:14px;line-height:1.7;color:var(--txt);margin-bottom:16px">
+        <p>Se han cargado <strong>${totalIds} contrapartes</strong> para comenzar.</p>
+        <ul style="margin:8px 0;padding-left:20px">
+          <li>Cada tarea tiene su propio trimestre asignado (1T-4T)</li>
+          <li>Todas las tareas viven juntas — filtra por trimestre en el panel</li>
+          <li>Exporta respaldo JSON para llevar datos a otra máquina</li>
+          <li>Descarga el archivo HTML para guardarlo localmente</li>
+        </ul>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-primary" style="flex:1" onclick="document.getElementById('wizardOverlay').remove()">Comenzar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+/* ===== DESCARGAR ARCHIVO DE TRIMESTRE ===== */
+function descargarArchivoTrimestre(){
+  // Guardar todo antes de descargar
+  store.save();
+  
+  // Leer el HTML actual del documento
+  const html = document.documentElement.outerHTML;
+  
+  // Inyectar los datos actuales como JSON embebido
+  const datos = {
+    tareas: tareas,
+    notifs: notifs,
+    listaIds: listaIds,
+    auditLog: auditLog,
+    exportDate: new Date().toISOString()
+  };
+  
+  // Crear blob con el HTML modificado para incluir datos embebidos
+  const scriptInyeccion = `<script>
+const DATOS_EMBEBIDOS = ${JSON.stringify(datos)};
+<\/script>`;
+  
+  const htmlModificado = html.replace('</body>', scriptInyeccion + '</body>');
+  
+  const blob = new Blob([htmlModificado], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `seguimiento_${new Date().toISOString().slice(0,10)}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  agregarAudit('EXPORTAR', `Archivo descargado: seguimiento_${new Date().toISOString().slice(0,10)}.html`);
+}
+
+/* ===== CARGAR DATOS EMBEBIDOS (si existen) ===== */
+if(typeof DATOS_EMBEBIDOS !== 'undefined'){
+  // Los datos embebidos tienen prioridad sobre localStorage
+  console.log('Cargando datos embebidos...');
+}
+
+/* NUEVO v3: Audit helper */
+function agregarAudit(action, detail){
+  auditLog.unshift({
+    time: new Date().toISOString(),
+    action, detail
+  });
+  if(auditLog.length > MAX_AUDIT) auditLog.length = MAX_AUDIT;
+  renderAudit();
+  store.save();
+}
+
+const hoy = ()=> new Date(new Date().toDateString());
+const fmtFecha = d => d.toLocaleDateString('es-CL');
+
+/* ===== Código de seguimiento ===== */
+function generarCodigo(contraparte, fechaIso){
+  const f = (fechaIso || new Date().toISOString().slice(0,10)).replace(/-/g,'').slice(2);
+  const rnd = Math.random().toString(36).slice(2,6).toUpperCase();
+  return `SEG-${String(contraparte).trim()}-${f}-${rnd}`;
+}
+
+function diasRestantes(t){
+  const ini = new Date(t.inicio+'T00:00:00');
+  const fin = new Date(ini); fin.setDate(fin.getDate()+Number(t.dias));
+  return Math.ceil((fin - hoy())/86400000);
+}
+function fechaFin(t){
+  const ini = new Date(t.inicio+'T00:00:00');
+  const fin = new Date(ini); fin.setDate(fin.getDate()+Number(t.dias));
+  return fin;
+}
+function estadoDe(t){
+  if(t.completada) return 'list';
+  if(fechaFinMs(t) <= Date.now()) return 'venc';
+  const r = diasRestantes(t);
+  if(t.iniciada || r < Number(t.dias)) return 'curso';
+  return 'pend';
+}
+const estadoTxt = {pend:'Pendiente',curso:'En curso',list:'Lista',venc:'Vencida'};
+// El listado "Tareas asignadas" muestra solo tareas activas (pendiente, en curso, vencida);
+// las terminadas ("Lista") recién aparecen con el filtro "Todos los estados".
+const ESTADOS_ACTIVOS = ['pend','curso','venc'];
+function filtroEstadoOK(est, fe){
+  if(fe==='') return ESTADOS_ACTIVOS.includes(est);
+  if(fe==='all') return true;
+  return est===fe;
+}
+
+/* Trimestre labels */
+const trimestreLabels = {
+  T1:'📅 T1 (Ene-Mar)', T2:'📅 T2 (Abr-Jun)',
+  T3:'📅 T3 (Jul-Sep)', T4:'📅 T4 (Oct-Dic)'
+};
+
+/* ===== Selector de Contraparte ===== */
+const paDe = id => String(id).trim().slice(0,2);
+
+function renderPaSelect(){
+  const sel = document.getElementById('paSelect');
+  const actual = sel.value;
+  const grupos = [...new Set(listaIds.map(paDe))].sort();
+  sel.innerHTML = '<option value="">Todos los grupos</option>' +
+    grupos.map(pa=>{
+      const n = listaIds.filter(id=>paDe(id)===pa).length;
+      return `<option value="${pa}">PA ${pa} (${n})</option>`;
+    }).join('');
+  if(grupos.includes(actual)) sel.value = actual;
+}
+
+function renderIdList(){
+  const cont = document.getElementById('idList');
+  const q = (document.getElementById('idFiltro').value||'').toLowerCase().trim();
+  const pa = document.getElementById('paSelect').value;
+  const vis = listaIds.filter(id =>
+    (!q || id.toLowerCase().includes(q)) && (!pa || paDe(id)===pa));
+  if(!vis.length){
+    cont.innerHTML = '<div class="id-list-empty">Sin coincidencias.</div>';
+  } else {
+    cont.innerHTML = vis.map(id=>{
+      const on = seleccion.has(id);
+      return `<label class="id-opt ${on?'on':''}">
+        <input type="checkbox" ${on?'checked':''} onchange="toggleId('${id}',this.checked)">
+        <span class="pa-tag">${paDe(id)}</span>
+        <span>${id}</span>
+        <button class="btn-sm" style="margin-left:auto;padding:1px 5px;font-size:10px;line-height:1.4;border-color:transparent;background:transparent;color:var(--muted);cursor:pointer" onclick="event.stopPropagation();eliminarContraparteDelListado('${id}')" title="Eliminar del listado">✕</button>
+      </label>`;
+    }).join('');
+  }
+  document.getElementById('selCount').textContent = seleccion.size + ' seleccionados';
+}
+function toggleId(id, on){
+  if(on) seleccion.add(id); else seleccion.delete(id);
+  renderIdList();
+}
+function toggleTodos(on){
+  const q = (document.getElementById('idFiltro').value||'').toLowerCase().trim();
+  const pa = document.getElementById('paSelect').value;
+  const vis = listaIds.filter(id =>
+    (!q || id.toLowerCase().includes(q)) && (!pa || paDe(id)===pa));
+  vis.forEach(id => on ? seleccion.add(id) : seleccion.delete(id));
+  renderIdList();
+}
+function filtrarPorPA(){ renderIdList(); }
+function seleccionarGrupoPA(on){
+  const pa = document.getElementById('paSelect').value;
+  if(!pa){ alert('Elige un grupo PA en el desplegable.'); return; }
+  listaIds.filter(id=>paDe(id)===pa).forEach(id => on ? seleccion.add(id) : seleccion.delete(id));
+  renderIdList();
+}
+function agregarId(){
+  const inp = document.getElementById('idNuevo');
+  const id = String(inp.value).trim();
+  if(!id) return;
+  if(!listaIds.includes(id)) listaIds.unshift(id);
+  seleccion.add(id);
+  inp.value='';
+  store.save(); renderPaSelect(); renderIdList();
+}
+function removerId(){
+  const inp = document.getElementById('idNuevo');
+  const id = String(inp.value).trim();
+  if(!id){ alert('Escribe el Contraparte que quieres remover.'); return; }
+  if(!listaIds.includes(id)){ alert(`El Contraparte "${id}" no está en el listado.`); return; }
+  if(!confirm(`¿Remover ${id} del listado? (no afecta tareas ya asignadas)`)) return;
+  listaIds = listaIds.filter(x=>x!==id);
+  seleccion.delete(id);
+  inp.value='';
+  store.save(); renderPaSelect(); renderIdList();
+}
+
+/* ===== CARGA CSV DE CLIENTES ===== */
+function cargarCSVClientes(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const text = e.target.result;
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if(lines.length < 2){
+        alert('El CSV no tiene datos suficientes (se necesita encabezado + al menos 1 fila).');
+        return;
+      }
+      
+      // Detectar separador (coma o punto y coma)
+      const sep = lines[0].includes(';') ? ';' : ',';
+      
+      // Parsear encabezado
+      const headers = lines[0].split(sep).map(h => h.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_'));
+      
+      // Buscar columna CLIENTE_FINAL
+      const idxFinal = headers.findIndex(h => 
+        h.includes('CLIENTE_FINAL') || h.includes('CLIENTE FINAL') || h === 'CLIENTE_FINAL'
+      );
+      
+      if(idxFinal === -1){
+        alert(`No se encontró la columna "CLIENTE_FINAL" en el CSV.\n\nColumnas detectadas:\n${headers.join(', ')}`);
+        return;
+      }
+      
+      // Extraer valores únicos de CLIENTE_FINAL
+      const clientes = new Set();
+      for(let i = 1; i < lines.length; i++){
+        const cols = lines[i].split(sep);
+        if(cols[idxFinal]){
+          const val = cols[idxFinal].trim();
+          if(val && val.length > 0){
+            clientes.add(val);
+          }
+        }
+      }
+      
+      const listaClientes = Array.from(clientes);
+      
+      if(listaClientes.length === 0){
+        alert('No se encontraron valores en la columna CLIENTE_FINAL.');
+        return;
+      }
+      
+      if(!confirm(`Se detectaron ${listaClientes.length} clientes únicos en la columna CLIENTE_FINAL.\n\n¿Reemplazar el listado actual de contrapartes con estos datos?\n\nLas tareas existentes no se verán afectadas.`)){
+        return;
+      }
+      
+      // Reemplazar lista
+      listaIds = listaClientes;
+      seleccion.clear();
+      store.save();
+      renderPaSelect();
+      renderIdList();
+      actualizarDataStatus('✓ CSV cargado: ' + listaClientes.length + ' clientes');
+      alert(`✅ Se cargaron ${listaClientes.length} clientes desde ${file.name}.`);
+      
+      // Limpiar input para permitir recargar el mismo archivo
+      event.target.value = '';
+    }catch(err){
+      alert('Error al procesar el CSV: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.onerror = function(){
+    alert('Error al leer el archivo.');
+  };
+  reader.readAsText(file);
+}
+function eliminarContraparteDelListado(id){
+  if(!listaIds.includes(id)){ return; }
+  if(!confirm(`¿Eliminar "${id}" del listado de contrapartes?\n\nEsto no borra las tareas ya asignadas a esta contraparte.`)) return;
+  listaIds = listaIds.filter(x=>x!==id);
+  seleccion.delete(id);
+  store.save(); renderPaSelect(); renderIdList();
+  agregarAudit('LISTADO', `Contraparte ${id} eliminada del listado`);
+}
+
+/* ===== Crear ===== */
+function crearTarea(){
+  const ids = [...seleccion];
+  const letra = document.getElementById('fLetra').value.trim();
+  const dias = Number(document.getElementById('fDias').value);
+  const inicio = document.getElementById('fInicio').value || new Date().toISOString().slice(0,10);
+  const detalle = document.getElementById('fDetalle').value.trim();
+  const prioridad = document.getElementById('fPrioridad').value;
+  const recordar = Number(document.getElementById('fRecordar').value) || 2;
+  // NUEVO: trimestre y dependencia
+  const trimestre = document.getElementById('fTrimestre').value;
+  const dependencia = document.getElementById('fDependencia').value.trim();
+  if(!ids.length){ alert('Selecciona al menos un Contraparte del listado.'); return; }
+  if(!letra){ alert('Indica el nombre de la tarea.'); return; }
+  if(!dias || dias<1){ alert('El plazo debe ser al menos 1 día.'); return; }
+
+  ids.forEach((id,i)=>{
+    tareas.push({
+      uid: Date.now()+''+Math.floor(Math.random()*100000)+i,
+      codigo: generarCodigo(id, inicio),
+      contraparte:String(id), letra, dias, inicio, detalle,
+      imagen: imgNueva || null,
+      prioridad, recordar, trimestre, dependencia,
+      comentarios: [],
+      iniciada:false, completada:false, avisada:false, recordada:false,
+      creada:new Date().toISOString()
+    });
+  });
+  store.save();
+  agregarAudit('CREAR', `Tarea "${letra}" → ${ids.length} contraparte(es)`);
+  seleccion.clear();
+  document.getElementById('fLetra').value='';
+  document.getElementById('fDetalle').value='';
+  document.getElementById('fDependencia').value='';
+  document.getElementById('idFiltro').value='';
+  imgNueva=null; pintarPreview('f', null);
+  renderIdList(); render(); chequearPlazos();
+  alert(`Tarea "${letra}" asignada a ${ids.length} contraparte(es).`);
+}
+
+/* ===== Importar CSV ===== */
+function parseCSV(texto){
+  texto = texto.replace(/^\uFEFF/,'');
+  const lineas = texto.split(/\r\n|\n|\r/).filter(l=>l.trim()!=='');
+  if(!lineas.length) return {head:[],rows:[]};
+  const sep = (lineas[0].split(';').length >= lineas[0].split(',').length) ? ';' : ',';
+  const corta = l => {
+    const out=[]; let cur='', q=false;
+    for(let i=0;i<l.length;i++){
+      const c=l[i];
+      if(c==='\"'){ if(q && l[i+1]==='\"'){cur+='\"';i++;} else q=!q; }
+      else if(c===sep && !q){ out.push(cur); cur=''; }
+      else cur+=c;
+    }
+    out.push(cur);
+    return out.map(s=>s.trim());
+  };
+  const head = corta(lineas[0]).map(h=>h.toUpperCase().replace(/\s+/g,'_'));
+  const rows = lineas.slice(1).map(corta);
+  return {head, rows};
+}
+
+function normFecha(s){
+  if(!s) return null;
+  s = s.trim().replace(/\//g,'-');
+  let m;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/)))
+    return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  if((m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/)))
+    return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
+}
+
+/* ===== Manejo de imágenes adjuntas ===== */
+let imgEdicion = null;
+let imgNueva   = null;
+const MAX_IMG_BYTES = 4_000_000;
+
+function leerImagen(file, cb){
+  if(!file) return;
+  if(!file.type.startsWith('image/')){ alert('El archivo debe ser una imagen.'); return; }
+  if(file.size > MAX_IMG_BYTES){
+    alert('La imagen supera ~4 MB. Usa una versión más liviana.');
+    return;
+  }
+  const r = new FileReader();
+  r.onload = e => cb(e.target.result);
+  r.readAsDataURL(file);
+}
+function adjuntarImagen(ev){
+  leerImagen(ev.target.files[0], data=>{ imgEdicion=data; pintarPreview('e', data); });
+  ev.target.value='';
+}
+function quitarImagen(){ imgEdicion=null; pintarPreview('e', null); }
+function adjuntarImagenNueva(ev){
+  leerImagen(ev.target.files[0], data=>{ imgNueva=data; pintarPreview('f', data); });
+  ev.target.value='';
+}
+function quitarImagenNueva(){ imgNueva=null; pintarPreview('f', null); }
+function pintarPreview(pref, data){
+  const box = document.getElementById(pref+'ImgPreview');
+  const tag = document.getElementById(pref+'ImgTag');
+  if(data){ tag.src=data; box.style.display='block'; }
+  else { tag.removeAttribute('src'); box.style.display='none'; }
+}
+function habilitarPegadoImagen(textareaId, asignar, pref){
+  const ta = document.getElementById(textareaId);
+  ta.addEventListener('paste', e=>{
+    const items = (e.clipboardData||{}).items || [];
+    for(const it of items){
+      if(it.type && it.type.startsWith('image/')){
+        const file = it.getAsFile();
+        leerImagen(file, data=>{ asignar(data); pintarPreview(pref, data); });
+      }
+    }
+  });
+}
+
+/* ===== Editar ===== */
+function abrirEdicion(uid){
+  const t = tareas.find(x=>x.uid===uid); if(!t) return;
+  editId = uid;
+  eId.value=t.contraparte; eLetra.value=t.letra; eDias.value=t.dias;
+  eInicio.value=t.inicio; eDetalle.value=t.detalle||'';
+  eEstado.value = t.completada?'list':(t.iniciada?'curso':'pend');
+  ePrioridad.value = t.prioridad || 'med';
+  eRecordar.value = t.recordar || 2;
+  // NUEVO: trimestre y dependencia
+  eTrimestre.value = t.trimestre || 'T3';
+  eDependencia.value = t.dependencia || '';
+  imgEdicion = t.imagen || null;
+  pintarPreview('e', imgEdicion);
+  renderComentarios(t);
+  modalBg.classList.add('open');
+}
+function guardarEdicion(){
+  const t = tareas.find(x=>x.uid===editId); if(!t) return;
+  const viejoEstado = estadoTxt[estadoDe(t)] || '';
+  t.contraparte=String(eId.value).trim(); t.letra=eLetra.value.trim();
+  t.dias=Number(eDias.value); t.inicio=eInicio.value; t.detalle=eDetalle.value.trim();
+  t.imagen = imgEdicion || null;
+  t.prioridad = ePrioridad.value;
+  t.recordar = Number(eRecordar.value) || 2;
+  t.trimestre = eTrimestre.value;
+  t.dependencia = eDependencia.value.trim();
+  const est=eEstado.value;
+  t.completada = est==='list';
+  t.iniciada = est!=='pend';
+  if(!t.completada) { t.avisada=false; t.recordada=false; }
+  store.save(); cerrarModal(); render(); chequearPlazos();
+  const nuevoEstado = estadoTxt[estadoDe(t)] || '';
+  agregarAudit('EDITAR', `${t.letra} (${t.contraparte}) — ${viejoEstado}→${nuevoEstado}`);
+}
+function cerrarModal(){ modalBg.classList.remove('open'); editId=null; imgEdicion=null; }
+
+/* NUEVO v3: Comentarios */
+function renderComentarios(t){
+  const lista = document.getElementById('comentariosList');
+  lista.innerHTML = (t.comentarios||[]).map(c=>`
+    <div class="comentario">
+      <div class="cm-time">${new Date(c.time).toLocaleString('es-CL')}</div>
+      <div class="cm-text">${escapeHtml(c.text)}</div>
+    </div>
+  `).join('');
+}
+function agregarComentario(){
+  const inp = document.getElementById('cmInput');
+  const text = inp.value.trim();
+  if(!text || !editId) return;
+  const t = tareas.find(x=>x.uid===editId);
+  if(!t) return;
+  if(!t.comentarios) t.comentarios=[];
+  t.comentarios.push({time:new Date().toISOString(), text});
+  inp.value='';
+  renderComentarios(t);
+  store.save();
+}
+function escapeHtml(s){
+  const d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+}
+
+/* ===== Modal Detalle ===== */
+let detalleActual = '';
+function verDetalle(uid){
+  const t = tareas.find(x=>x.uid===uid); if(!t) return;
+  detalleActual = t.detalle || '';
+  document.getElementById('detalleTit').textContent = `Detalle · ${t.letra} · ${t.contraparte}`;
+  document.getElementById('detalleCod').textContent = t.codigo ? `Cód. seguimiento: ${t.codigo}` : '';
+  document.getElementById('detalleCod').style.display = t.codigo ? 'inline-block' : 'none';
+  // NUEVO: meta info
+  const meta = document.getElementById('detalleMeta');
+  let metaHtml = '';
+  if(t.trimestre){
+    metaHtml += `<span class="trimestre-chip trimestre-${t.trimestre.toLowerCase()}">${trimestreLabels[t.trimestre]||t.trimestre}</span>`;
+  }
+  if(t.dependencia){
+    metaHtml += `<span class="dep-tag">⛓ Dep: ${t.dependencia}</span>`;
+  }
+  // Check if other tasks depend on this one
+  const dependientes = tareas.filter(x => x.dependencia === t.codigo);
+  if(dependientes.length){
+    metaHtml += `<span class="dep-tag">→ ${dependientes.length} tarea(s) depende(n)</span>`;
+  }
+  meta.innerHTML = metaHtml;
+  meta.style.display = metaHtml ? 'flex' : 'none';
+  document.getElementById('detalleTexto').textContent = detalleActual;
+  document.getElementById('detalleTexto').style.display = detalleActual ? 'block' : 'none';
+  const imgBox = document.getElementById('detalleImg');
+  const imgTag = document.getElementById('detalleImgTag');
+  if(t.imagen){ imgTag.src=t.imagen; imgBox.style.display='block'; }
+  else { imgTag.removeAttribute('src'); imgBox.style.display='none'; }
+  document.getElementById('btnCopiar').textContent = 'Copiar';
+  detalleBg.classList.add('open');
+}
+function cerrarDetalle(){ detalleBg.classList.remove('open'); }
+function copiarDetalle(){
+  const btn = document.getElementById('btnCopiar');
+  const exito = ()=>{ btn.textContent='✓ Copiado'; setTimeout(()=>btn.textContent='Copiar',1800); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(detalleActual).then(exito).catch(()=>fallbackCopiar(exito));
+  } else { fallbackCopiar(exito); }
+}
+function fallbackCopiar(exito){
+  const ta=document.createElement('textarea');
+  ta.value=detalleActual; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); exito(); }
+  catch(e){ alert('No se pudo copiar automáticamente. Selecciona el texto y cópialo manualmente.'); }
+  document.body.removeChild(ta);
+}
+
+function copiarTexto(texto, exito){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(texto).then(exito).catch(()=>fallbackTexto(texto,exito));
+  } else { fallbackTexto(texto, exito); }
+}
+function fallbackTexto(texto, exito){
+  const ta=document.createElement('textarea');
+  ta.value=texto; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); exito(); }
+  catch(e){ alert('No se pudo copiar automáticamente.'); }
+  document.body.removeChild(ta);
+}
+function copiarCodigo(uid, btn){
+  const t = tareas.find(x=>x.uid===uid); if(!t) return;
+  copiarTexto(t.codigo||'', ()=>{
+    const prev = btn.textContent;
+    btn.textContent='✓'; btn.classList.add('ok');
+    setTimeout(()=>{ btn.textContent=prev; btn.classList.remove('ok'); },1400);
+  });
+}
+
+function completar(uid){
+  const t=tareas.find(x=>x.uid===uid); if(!t) return;
+  t.completada=true; store.save(); render();
+  agregarAudit('COMPLETAR', `${t.letra} (${t.contraparte})`);
+}
+function borrar(uid){
+  if(!confirm('¿Eliminar esta tarea?')) return;
+  const t=tareas.find(x=>x.uid===uid);
+  tareas = tareas.filter(x=>x.uid!==uid);
+  selTabla.delete(uid);
+  store.save(); render();
+  if(t) agregarAudit('BORRAR', `${t.letra} (${t.contraparte})`);
+}
+function eliminarTareasPorPA(){
+  const pa = document.getElementById('paSelect').value;
+  if(!pa){ alert('Elige un grupo PA en el desplegable para eliminar sus tareas.'); return; }
+  const objetivo = tareas.filter(t=>paDe(t.contraparte)===pa);
+  if(!objetivo.length){ alert(`No hay tareas asignadas en el grupo PA ${pa}.`); return; }
+  if(!confirm(`¿Eliminar las ${objetivo.length} tarea(s) del grupo PA ${pa}? Esta acción no se puede deshacer.`)) return;
+  tareas = tareas.filter(t=>paDe(t.contraparte)!==pa);
+  store.save(); render(); actualizarCountdown();
+  agregarAudit('BORRAR', `${objetivo.length} tarea(s) del PA ${pa}`);
+  alert(`Se eliminaron ${objetivo.length} tarea(s) del grupo PA ${pa}.`);
+}
+
+/* ===== Selección múltiple ===== */
+let selTabla = new Set();
+
+function toggleSelTabla(uid, on){
+  if(on) selTabla.add(uid); else selTabla.delete(uid);
+  render();
+}
+function toggleSelTodas(on){
+  const q = (buscar.value||'').toLowerCase();
+  const fe = filtroEstado.value;
+  const fp = filtroPrioridad.value;
+  const ft = filtroTrimestre.value;
+  const visibles = tareas.filter(t=>{
+    const est = estadoDe(t);
+    if(!filtroEstadoOK(est, fe)) return false;
+    if(fp && t.prioridad!==fp) return false;
+    if(ft && t.trimestre!==ft) return false;
+    if(q && !((t.contraparte+'').toLowerCase().includes(q) || t.letra.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  visibles.forEach(t => on ? selTabla.add(t.uid) : selTabla.delete(t.uid));
+  render();
+}
+function limpiarSelTabla(){ selTabla.clear(); render(); }
+function actualizarBulkBar(visibles){
+  const bar = document.getElementById('bulkBar');
+  const n = selTabla.size;
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('bulkCount').textContent =
+    n + (n===1?' seleccionada':' seleccionadas');
+  const chkAll = document.getElementById('chkAll');
+  if(chkAll){
+    const todasMarcadas = visibles.length>0 && visibles.every(t=>selTabla.has(t.uid));
+    chkAll.checked = todasMarcadas;
+    chkAll.indeterminate = n>0 && !todasMarcadas;
+  }
+}
+function eliminarSeleccionadas(){
+  const n = selTabla.size;
+  if(!n){ alert('Marca al menos una tarea en el listado.'); return; }
+  if(!confirm(`¿Eliminar las ${n} tarea(s) seleccionada(s)? Esta acción no se puede deshacer.`)) return;
+  tareas = tareas.filter(t=>!selTabla.has(t.uid));
+  selTabla.clear();
+  store.save(); render(); actualizarCountdown();
+  agregarAudit('BORRAR', `${n} tarea(s) seleccionada(s)`);
+  alert(`Se eliminaron ${n} tarea(s).`);
+}
+
+/* ===== Render ===== */
+function render(){
+  const q = (buscar.value||'').toLowerCase();
+  const fe = filtroEstado.value;
+  const fp = filtroPrioridad.value;
+  const ft = filtroTrimestre.value;
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML='';
+  let visibles = tareas.filter(t=>{
+    const est = estadoDe(t);
+    if(!filtroEstadoOK(est, fe)) return false;
+    if(fp && t.prioridad!==fp) return false;
+    if(ft && t.trimestre!==ft) return false;
+    if(q && !((t.contraparte+'').toLowerCase().includes(q) || t.letra.toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b)=>{
+    // Prioridad alta primero, luego por días restantes
+    const prioOrden = {high:0,med:1,low:2};
+    const pa2 = (prioOrden[a.prioridad]||1) - (prioOrden[b.prioridad]||1);
+    if(pa2!==0) return pa2;
+    return diasRestantes(a)-diasRestantes(b);
+  });
+
+  document.getElementById('empty').style.display = visibles.length?'none':'block';
+
+  for(const t of visibles){
+    const est = estadoDe(t);
+    const r = diasRestantes(t);
+    let diasCls='dias', diasStr;
+    if(t.completada){ diasStr='—'; }
+    else if(est==='venc'){ diasCls+=' neg'; diasStr = r<0 ? Math.abs(r)+'d vencido' : 'Vencido'; }
+    else if(r<=2){ diasCls+=' cerca'; diasStr=r+'d'; }
+    else diasStr=r+'d';
+
+    const tr=document.createElement('tr');
+    let cls = '';
+    if(selTabla.has(t.uid)) cls += 'sel ';
+    if(est==='venc') cls += 'fila-venc ';
+    const prioCls = t.prioridad==='high'?'priority-high':(t.prioridad==='low'?'priority-low':'priority-med');
+    cls += prioCls;
+    tr.className = cls.trim();
+    const prioLabel = {high:'🔴',med:'🟡',low:'🟢'}[t.prioridad] || '🟡';
+    // NUEVO: trimestre chip
+    let triChip = '';
+    if(t.trimestre){
+      triChip = `<span class="trimestre-chip trimestre-${t.trimestre.toLowerCase()}">${t.trimestre}</span> `;
+    }
+    // NUEVO: dependencia tag
+    let depTag = '';
+    if(t.dependencia){
+      depTag = `<span class="dep-tag" title="Depende de: ${t.dependencia}">⛓</span>`;
+    }
+    // NUEVO: indicador de comentarios
+    let cmBadge = '';
+    if(t.comentarios && t.comentarios.length){
+      cmBadge = `<span style="font-size:10px;color:var(--muted)" title="${t.comentarios.length} comentario(s)">💬${t.comentarios.length}</span>`;
+    }
+    tr.innerHTML=`
+      <td class="chk-col"><input type="checkbox" ${selTabla.has(t.uid)?'checked':''} onchange="toggleSelTabla('${t.uid}',this.checked)"></td>
+      <td><span class="letra">${prioLabel} ${t.letra}</span> ${triChip}${depTag}${cmBadge}</td>
+      <td class="idserv">${t.contraparte}</td>
+      <td><span class="cod-cell"><code class="cod-txt" id="cod-${t.uid}">${t.codigo||''}</code><button class="btn-copy-cod" title="Copiar código" onclick="copiarCodigo('${t.uid}', this)">⧉</button></span></td>
+      <td class="dias">${t.dias}d · vence ${fmtFecha(fechaFin(t))}</td>
+      <td class="${diasCls}">${diasStr}</td>
+      <td><div class="estado-cell">
+        <span class="pill ${est}">${estadoTxt[est]}${est==='venc'?' ⚠':''}</span>
+        ${(t.detalle || t.imagen) ? `<button class="btn-detalle" title="Ver detalle" onclick="verDetalle('${t.uid}')">📄 Detalle${t.imagen?' 🖼':''}</button>` : ''}
+      </div></td>
+      <td><div class="acts">
+        <button class="btn-sm" onclick="abrirEdicion('${t.uid}')">Editar</button>
+        ${t.completada?'':`<button class="btn-sm" onclick="completar('${t.uid}')">Completar</button>`}
+        <button class="btn-sm btn-danger" onclick="borrar('${t.uid}')">Eliminar</button>
+      </div></td>`;
+    tbody.appendChild(tr);
+  }
+
+  const uidsVis = new Set(visibles.map(t=>t.uid));
+  [...selTabla].forEach(u=>{ if(!uidsVis.has(u)) selTabla.delete(u); });
+  actualizarBulkBar(visibles);
+
+  // estadísticas + dashboard
+  actualizarDashboard();
+}
+
+/* NUEVO v3: Dashboard mejorado */
+function actualizarDashboard(){
+  const total = tareas.length;
+  const pend = tareas.filter(t=>estadoDe(t)==='pend').length;
+  const curso = tareas.filter(t=>estadoDe(t)==='curso').length;
+  const list = tareas.filter(t=>estadoDe(t)==='list').length;
+  const venc = tareas.filter(t=>estadoDe(t)==='venc').length;
+  const high = tareas.filter(t=>t.prioridad==='high' && !t.completada).length;
+  const trimes = new Set(tareas.map(t=>t.trimestre).filter(c=>c)).size;
+  const pct = total ? Math.round((list/total)*100) : 0;
+
+  dcTotal.textContent = total;
+  dcPend.textContent = pend;
+  dcCurso.textContent = curso;
+  dcList.textContent = list;
+  dcVenc.textContent = venc;
+  dcHigh.textContent = high;
+  dcTrimes.textContent = trimes;
+  dcPct.textContent = pct+'%';
+
+  // barras
+  if(total){
+    document.getElementById('barPend').style.width = (pend/total*100)+'%';
+    document.getElementById('barCurso').style.width = (curso/total*100)+'%';
+    document.getElementById('barList').style.width = (list/total*100)+'%';
+    document.getElementById('barVenc').style.width = (venc/total*100)+'%';
+  }
+  // legacy stat row (elementos ya removidos de la UI → referencias huérfanas; no deben romper el arranque)
+  try { stTotal.textContent = total; stCurso.textContent = curso; stList.textContent  = list; stVenc.textContent  = venc; } catch(e){}
+}
+
+/* ===== Notificaciones de plazo cumplido + recordatorio anticipado ===== */
+function chequearPlazos(){
+  const ahora = Date.now();
+  let hubo = false;
+  for(const t of tareas){
+    if(t.completada) continue;
+    // Vencimiento
+    if(!t.avisada && fechaFinMs(t) <= ahora){
+      t.avisada = true; hubo = true;
+      notifs.unshift({
+        uid:'n'+Date.now()+Math.floor(Math.random()*999),
+        texto:`Plazo cumplido: tarea ${t.letra} de Contraparte ${t.contraparte}`,
+        fecha:new Date().toISOString(), leida:false,
+        venceEl: fmtFecha(fechaFin(t))
+      });
+      mostrarToast(t, 'Plazo cumplido', false);
+    }
+    // Recordatorio anticipado
+    if(!t.recordada && !t.avisada){
+      const r = diasRestantes(t);
+      const recordar = t.recordar || 2;
+      if(r > 0 && r <= recordar){
+        t.recordada = true; hubo = true;
+        notifs.unshift({
+          uid:'n'+Date.now()+Math.floor(Math.random()*999),
+          texto:`⏰ Recordatorio: tarea ${t.letra} de Contraparte ${t.contraparte} vence en ${r} día(s)`,
+          fecha:new Date().toISOString(), leida:false,
+          venceEl: fmtFecha(fechaFin(t))
+        });
+        mostrarToast(t, `⏰ Vence en ${r} día(s)`, true);
+      }
+    }
+  }
+  store.save();
+  renderNotifs();
+  if(hubo){ render(); actualizarCountdown(); }
+}
+
+function renderNotifs(){
+  const lista = document.getElementById('notifList');
+  const noLeidas = notifs.filter(n=>!n.leida).length;
+  const badge = document.getElementById('badge');
+  badge.textContent = noLeidas;
+  badge.style.display = noLeidas? 'flex':'none';
+  if(notifs.length===0){
+    lista.innerHTML='<div class="notif-empty">No hay notificaciones.</div>';
+    return;
+  }
+  lista.innerHTML = notifs.map(n=>`
+    <div class="notif-item ${n.leida?'':'unread'}">
+      <div class="notif-dot ${n.leida?'read':''}"></div>
+      <div>
+        <div>${n.texto}</div>
+        <div class="meta">Vencía el ${n.venceEl} · ${new Date(n.fecha).toLocaleString('es-CL')}</div>
+      </div>
+    </div>`).join('');
+}
+function marcarTodasLeidas(){
+  notifs.forEach(n=>n.leida=true); store.save(); renderNotifs();
+}
+function mostrarToast(t, titulo, esWarn){
+  const z=document.getElementById('toastZone');
+  const el=document.createElement('div');
+  el.className='toast'+(esWarn?' warn-toast':'');
+  el.innerHTML=`<strong>${titulo}</strong>
+    <span>Tarea ${t.letra} · Contraparte ${t.contraparte} · vence ${fmtFecha(fechaFin(t))}</span>`;
+  z.appendChild(el);
+  setTimeout(()=>el.remove(),7000);
+}
+
+// Toast genérico (sin datos de tarea)
+function toast(msg){
+  const z=document.getElementById('toastZone');
+  if(!z) return;
+  const el=document.createElement('div');
+  el.className='toast';
+  el.innerHTML=`<strong>${msg}</strong>`;
+  z.appendChild(el);
+  setTimeout(()=>el.remove(),5000);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   PORTABILIDAD: Exportar / Importar datos como archivo JSON
+   ═══════════════════════════════════════════════════════════ */
+
+function exportarJSON(){
+  const payload = {
+    version: '3.0',
+    exportado: new Date().toISOString(),
+    tareas: tareas,
+    notifs: notifs,
+    listaIds: listaIds,
+    plantillas: plantillas,
+    auditLog: auditLog
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fecha = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `seguimiento_respaldo_${fecha}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  actualizarDataStatus('✓ Respaldo descargado');
+}
+
+function importarJSON(ev){
+  const file = ev.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(!data.tareas || !Array.isArray(data.tareas)){
+        alert('El archivo no tiene el formato esperado (falta "tareas").');
+        return;
+      }
+      const modo = confirm(
+        `Se encontraron ${data.tareas.length} tarea(s) en el respaldo.\n\n` +
+        `Aceptar → REEMPLAZAR los datos actuales\n` +
+        `Cancelar → FUSIONAR con los datos actuales`
+      );
+      // Contrapartes: los respaldos actuales las guardan en configuracion.ids;
+      // los viejos (y el auto-guardado) también pueden traerlas como listaIds de nivel superior
+      const idsImport = Array.isArray(data.listaIds) ? data.listaIds :
+                        ((data.configuracion && Array.isArray(data.configuracion.ids)) ? data.configuracion.ids : null);
+      if(modo){
+        tareas = data.tareas;
+        notifs = data.notifs || [];
+        if(idsImport) listaIds = idsImport.slice();
+        if(data.plantillas) plantillas = data.plantillas;
+        if(data.auditLog) auditLog = data.auditLog;
+      } else {
+        const uidsExistentes = new Set(tareas.map(t=>t.uid));
+        let nuevas = 0;
+        (data.tareas||[]).forEach(t=>{
+          if(!uidsExistentes.has(t.uid)){
+            tareas.push(t);
+            nuevas++;
+          }
+        });
+        if(idsImport){
+          idsImport.forEach(id=>{
+            if(!listaIds.includes(id)) listaIds.push(id);
+          });
+        }
+        if(data.plantillas){
+          data.plantillas.forEach(p=>{
+            if(!plantillas.find(x=>x.nombre===p.nombre)) plantillas.push(p);
+          });
+        }
+        alert(`Se fusionaron ${nuevas} tarea(s) nueva(s).`);
+      }
+      store.save();
+      render(); renderNotifs(); chequearPlazos(); renderPaSelect(); renderIdList();
+      renderPlantillas(); renderAudit();
+      actualizarDataStatus('✓ Datos cargados desde respaldo');
+      agregarAudit('IMPORT', `Respaldo JSON (${data.version||'?'})`);
+    } catch(err){
+      alert('Error al leer el archivo: '+err.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  ev.target.value='';
+}
+
+/* Exportar tareas como CSV */
+function exportarCSV(){
+  if(!tareas.length){ alert('No hay tareas para exportar.'); return; }
+  const headers = ['CODIGO','Contraparte','TAREA','INICIO','PLAZO_DIAS','ESTADO','PRIORIDAD','CATEGORIA','DEPENDENCIA','DETALLE'];
+  const filas = tareas.map(t=>{
+    const est = estadoDe(t);
+    const fin = fechaFin(t).toISOString().slice(0,10);
+    return [
+      t.codigo||'',
+      t.contraparte,
+      `"${(t.letra||'').replace(/"/g,'""')}"`,
+      t.inicio,
+      t.dias,
+      estadoTxt[est]||est,
+      t.prioridad||'med',
+      t.trimestre||'T3',
+      t.dependencia||'',
+      `"${(t.detalle||'').replace(/"/g,'""').replace(/\n/g,' ')}"`
+    ].join(';');
+  });
+  const csv = headers.join(';')+'\n'+filas.join('\n');
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tareas_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  actualizarDataStatus('✓ CSV descargado');
+}
+
+/* NUEVO v3: Exportar PDF (vía window.print) */
+function exportarPDF(){
+  if(!tareas.length){ alert('No hay tareas para exportar.'); return; }
+  const w = window.open('','_blank');
+  const total = tareas.length;
+  const pend = tareas.filter(t=>estadoDe(t)==='pend').length;
+  const curso = tareas.filter(t=>estadoDe(t)==='curso').length;
+  const list = tareas.filter(t=>estadoDe(t)==='list').length;
+  const venc = tareas.filter(t=>estadoDe(t)==='venc').length;
+  const filas = tareas.map(t=>{
+    const est = estadoDe(t);
+    const r = diasRestantes(t);
+    const fin = fmtFecha(fechaFin(t));
+    const prio = {high:'Alta',med:'Media',low:'Baja'}[t.prioridad]||'Media';
+    const cat = trimestreLabels[t.trimestre]||t.trimestre||'—';
+    let diasStr = t.completada?'—':(est==='venc'?Math.abs(r)+'d vencido':r+'d');
+    return `<tr>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px">${t.letra}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px">${t.contraparte}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:10px;font-family:monospace">${t.codigo||''}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px">${fin}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px;text-align:center">${diasStr}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px">${estadoTxt[est]}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px">${prio}</td>
+      <td style="border:1px solid #ddd;padding:4px 6px;font-size:11px">${cat}</td>
+    </tr>`;
+  }).join('');
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Reporte de Tareas</title>
+    <style>
+      body{font-family:Arial,sans-serif;font-size:12px;margin:24px}
+      h1{font-size:18px;margin-bottom:4px}
+      .meta{color:#666;font-size:11px;margin-bottom:16px}
+      table{width:100%;border-collapse:collapse;margin-top:12px}
+      th{background:#f5f7fa;text-align:left;font-size:10px;text-transform:uppercase;padding:6px 8px;border:1px solid #ddd}
+      @media print{body{margin:12px} .no-print{display:none}}
+    </style>
+  </head><body>
+    <h1>Reporte de Gestión de Tareas</h1>
+    <div class="meta">Generado: ${new Date().toLocaleString('es-CL')} · Total: ${total} | Pendientes: ${pend} | En curso: ${curso} | Completadas: ${list} | Vencidas: ${venc}</div>
+    <table>
+      <thead><tr><th>Tarea</th><th>Contraparte</th><th>Código</th><th>Vence</th><th>Restan</th><th>Estado</th><th>Prioridad</th><th>Categoría</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div class="no-print" style="margin-top:16px;text-align:center">
+      <button onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+    </div>
+  </body></html>`);
+  w.document.close();
+}
+
+/* NUEVO v3: Exportar .ics */
+function exportarICS(){
+  if(!tareas.length){ alert('No hay tareas para exportar.'); return; }
+  let ics = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Seguimiento Tareas//ES
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+`;
+  tareas.forEach(t=>{
+    const fin = fechaFin(t);
+    const dStart = t.inicio.replace(/-/g,'');
+    const dEnd = fin.toISOString().slice(0,10).replace(/-/g,'');
+    const status = t.completada ? 'COMPLETED' : (estadoDe(t)==='venc'?'NEEDS-ACTION':'IN-PROCESS');
+    const prio = t.prioridad==='high'?1:(t.prioridad==='low'?3:2);
+    const desc = (t.detalle||'').replace(/\n/g,'\\n').replace(/;/g,'').replace(/,/g,'');
+    ics += `BEGIN:VEVENT
+DTSTART;VALUE=DATE:${dStart}
+DTEND;VALUE=DATE:${dEnd}
+SUMMARY:${t.letra} (${t.contraparte})
+STATUS:${status}
+PRIORITY:${prio}
+DESCRIPTION:${desc}\\nCódigo: ${t.codigo||''}
+UID:${t.codigo||t.uid}@seguimiento
+END:VEVENT
+`;
+  });
+  ics += 'END:VCALENDAR';
+  const blob = new Blob([ics], {type:'text/calendar;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `tareas_${new Date().toISOString().slice(0,10)}.ics`;
+  a.click();
+  URL.revokeObjectURL(url);
+  actualizarDataStatus('✓ Archivo .ics descargado');
+}
+
+/* Indicador de estado de datos */
+function actualizarDataStatus(msg){
+  const el = document.getElementById('dataStatus');
+  if(msg){
+    el.textContent = msg;
+    el.className = 'status-ok';
+    setTimeout(()=>{ actualizarDataStatus(); }, 4000);
+    return;
+  }
+  const n = tareas.length;
+  el.textContent = `${n} tarea(s) en memoria`;
+  el.className = n ? 'status-ok' : 'status-warn';
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO v3: MODO OSCURO
+   ═══════════════════════════════════════════════════════════ */
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme');
+  const next = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('gt_tema', next);
+  actualizarBtnTema(next);
+}
+function actualizarBtnTema(tema){
+  document.getElementById('themeToggle').textContent = tema === 'dark' ? '☀️' : '🌙';
+}
+
+/* ===== Ancho del panel izquierdo (3 niveles) ===== */
+const anchosPanel = ['', 'wide', 'wider']; // 340px, 420px, 520px
+let nivelPanel = 0;
+function cambiarAnchoPanel(){
+  const grid = document.querySelector('.grid');
+  const btn = document.getElementById('panelResizeBtn');
+  // Remover clase actual
+  anchosPanel.forEach(c => { if(c) grid.classList.remove(c); });
+  // Avanzar al siguiente nivel
+  nivelPanel = (nivelPanel + 1) % anchosPanel.length;
+  // Aplicar nueva clase
+  if(anchosPanel[nivelPanel]) grid.classList.add(anchosPanel[nivelPanel]);
+  // Actualizar label del botón
+  const labels = ['↔ Normal', '↔ Ampliado', '↔ Máximo'];
+  btn.textContent = labels[nivelPanel];
+  // Guardar preferencia
+  localStorage.setItem('gt_panelAncho', nivelPanel);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO v3: AUDIT LOG
+   ═══════════════════════════════════════════════════════════ */
+function toggleAudit(){
+  const panel = document.getElementById('auditPanel');
+  panel.classList.toggle('open');
+  document.getElementById('auditArrow').textContent = panel.classList.contains('open') ? '▲' : '▼';
+}
+function renderAudit(){
+  const panel = document.getElementById('auditPanel');
+  if(!auditLog.length){
+    panel.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted)">Sin cambios registrados.</div>';
+    return;
+  }
+  panel.innerHTML = auditLog.slice(0,50).map(e=>{
+    const time = new Date(e.time);
+    const timeStr = time.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'});
+    const dateStr = time.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit'});
+    return `<div class="audit-entry">
+      <span class="audit-time">${dateStr} ${timeStr}</span>
+      <span class="audit-action">${e.action}</span>
+      <span class="audit-detail">${escapeHtml(e.detail)}</span>
+    </div>`;
+  }).join('');
+}
+function limpiarAudit(){
+  if(!confirm('¿Limpiar el historial de cambios?')) return;
+  auditLog = [];
+  store.save();
+  renderAudit();
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO v3: PLANTILLAS
+   ═══════════════════════════════════════════════════════════ */
+function renderPlantillas(){
+  const cont = document.getElementById('tplList');
+  if(!plantillas.length){
+    cont.innerHTML = '<span style="font-size:11px;color:var(--muted)">Sin plantillas. Crea una para reutilizar.</span>';
+    return;
+  }
+  cont.innerHTML = plantillas.map((p,i)=>`
+    <span class="tpl-chip" onclick="aplicarPlantilla(${i})" title="${escapeHtml(p.letra)}">${p.nombre}</span>
+    <button class="btn-sm" style="padding:2px 6px;font-size:10px" onclick="eliminarPlantilla(${i})" title="Eliminar">✕</button>
+  `).join('');
+}
+function aplicarPlantilla(idx){
+  const p = plantillas[idx];
+  if(!p) return;
+  document.getElementById('fLetra').value = p.letra || '';
+  document.getElementById('fDias').value = p.dias || 5;
+  document.getElementById('fPrioridad').value = p.prioridad || 'med';
+  document.getElementById('fCategoria').value = p.categoria || 'otro';
+  document.getElementById('fDetalle').value = p.detalle || '';
+  agregarAudit('PLANTILLA', `Aplicada: ${p.nombre}`);
+}
+function abrirModalPlantilla(){
+  document.getElementById('tplModalBg').classList.add('open');
+}
+function cerrarModalPlantilla(){
+  document.getElementById('tplModalBg').classList.remove('open');
+  document.getElementById('tplNombre').value='';
+  document.getElementById('tplLetra').value='';
+  document.getElementById('tplDetalle').value='';
+}
+function guardarPlantilla(){
+  const nombre = document.getElementById('tplNombre').value.trim();
+  const letra = document.getElementById('tplLetra').value.trim();
+  if(!nombre || !letra){ alert('Indica nombre y tarea para la plantilla.'); return; }
+  plantillas.push({
+    nombre, letra,
+    dias: Number(document.getElementById('tplDias').value)||5,
+    prioridad: document.getElementById('tplPrioridad').value,
+    categoria: document.getElementById('tplCategoria').value,
+    detalle: document.getElementById('tplDetalle').value.trim()
+  });
+  store.save();
+  cerrarModalPlantilla();
+  renderPlantillas();
+  agregarAudit('PLANTILLA', `Creada: ${nombre}`);
+}
+function eliminarPlantilla(idx){
+  if(!confirm(`¿Eliminar la plantilla "${plantillas[idx]?.nombre}"?`)) return;
+  const nombre = plantillas[idx]?.nombre;
+  plantillas.splice(idx,1);
+  store.save();
+  renderPlantillas();
+  if(nombre) agregarAudit('PLANTILLA', `Eliminada: ${nombre}`);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO v3: ATAJOS DE TECLADO
+   ═══════════════════════════════════════════════════════════ */
+function toggleShortcutsHint(){
+  document.getElementById('shortcutsHint').classList.toggle('open');
+}
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey || e.metaKey){
+    switch(e.key.toLowerCase()){
+      case 'n':
+        e.preventDefault();
+        document.getElementById('fLetra').focus();
+        break;
+      case 'f':
+        if(!e.shiftKey){
+          e.preventDefault();
+          document.getElementById('buscar').focus();
+        }
+        break;
+      case 't':
+        e.preventDefault();
+        toggleTheme();
+        break;
+      case 's':
+        e.preventDefault();
+        exportarJSON();
+        break;
+      case 'p':
+        e.preventDefault();
+        exportarPDF();
+        break;
+      case 'e':
+        e.preventDefault();
+        exportarCSV();
+        break;
+      case 'i':
+        e.preventDefault();
+        exportarICS();
+        break;
+      case '/':
+        e.preventDefault();
+        toggleShortcutsHint();
+        break;
+    }
+  }
+  if(e.key === 'Escape'){
+    cerrarModal();
+    cerrarDetalle();
+    cerrarModalPlantilla();
+    document.getElementById('shortcutsHint').classList.remove('open');
+  }
+});
+
+/* ===== UI helpers ===== */
+document.getElementById('bell').onclick=()=>{
+  notifPanel.classList.toggle('open');
+};
+document.addEventListener('click',e=>{
+  if(!notifPanel.contains(e.target) && e.target.id!=='bell' && !document.getElementById('bell').contains(e.target))
+    notifPanel.classList.remove('open');
+});
+function tick(){
+  document.getElementById('clock').textContent =
+    new Date().toLocaleString('es-CL',{dateStyle:'medium',timeStyle:'short'});
+}
+
+function fechaFinMs(t){
+  const fin = fechaFin(t);
+  fin.setHours(23,59,59,999);
+  return fin.getTime();
+}
+function actualizarCountdown(){
+  const box = document.getElementById('countdown');
+  const val = document.getElementById('cdVal');
+  const ahora = Date.now();
+  if(tareas.some(t=>!t.completada && !t.avisada && fechaFinMs(t) <= ahora)){
+    chequearPlazos();
+  }
+  const pendientes = tareas.filter(t=>!t.completada)
+    .map(t=>({t, ms:fechaFinMs(t)}))
+    .sort((a,b)=>a.ms-b.ms);
+  box.classList.remove('cerca','venc');
+  const futuras = pendientes.filter(p=>p.ms>ahora);
+  if(!futuras.length){
+    if(pendientes.length){ box.classList.add('venc'); val.textContent='Plazo vencido'; }
+    else val.textContent='Sin plazos';
+    return;
+  }
+  const restante = futuras[0].ms - ahora;
+  const horasTot = restante/3600000;
+  const d = Math.floor(restante/86400000);
+  const h = Math.floor((restante%86400000)/3600000);
+  const m = Math.floor((restante%3600000)/60000);
+  const s = Math.floor((restante%60000)/1000);
+  let txt;
+  if(d>0) txt = `${d}d ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  else    txt = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  val.textContent = txt;
+  if(horasTot<=24) box.classList.add('cerca');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NUEVO v4: PERSISTENCIA PORTÁTIL (carpeta datos/)
+   ═══════════════════════════════════════════════════════════ */
+
+// ── Estado global de persistencia ──
+let datosCargados = false;
+let imagenesCache = {}; // nombreArchivo -> dataURL
+let trimestreCargado = false; // (redeclaración defensiva: antes era variable global implícita)
+
+/* ===== Auto-guardado portátil: al cerrar guarda un .json junto a este HTML, al abrir lo carga solo ===== */
+const FSA_OK = ('showDirectoryPicker' in window);   // Chrome/Edge → escritura real en la carpeta
+let _autoDirHandle = null;                          // FileSystemDirectoryHandle de la carpeta del HTML (si se pudo conectar)
+let _autoSaveTimer = null;                          // debounce para el guardado automático tras cambios
+
+function autoPayload(){
+  const tk = getTrimestreKey();
+  return {
+    version: '4.0',
+    exportado: new Date().toISOString(),
+    trimestre: tk,
+    tareas: (tareas || []).map(t => ({...t})), // imágenes quedan como dataURL → el JSON es autocontenido
+    configuracion: {
+      tema: localStorage.getItem('gt_tema') || 'light',
+      trimestre: localStorage.getItem('gt_trimestre') || '',
+      ids: listaIds ? listaIds.slice() : [],
+    },
+    plantillas: plantillas || [],
+    auditLog: (auditLog || []).slice(-MAX_AUDIT),
+  };
+}
+
+function autoFileName(){ return 'datos_' + getTrimestreKey() + '.json'; }
+
+// Conecta la carpeta donde vive este HTML. Lee el handle guardado en IndexedDB (no pide nada).
+// Si no hay ninguno y force=true (clic del botón "Autorizar carpeta"), abre el selector UNA vez.
+async function conectarAutoGuardar(force){
+  try{
+    if(!FSA_OK) return false;
+    const dir = await idbGet('autoDirHandle');
+    if(dir){ _autoDirHandle = dir; return true; }
+    if(!force) return false; // sin gesto de usuario: no pedir, esperar el botón del banner
+    const h = await showDirectoryPicker({mode:'readwrite', id:'seg-tareas-auto'});
+    _autoDirHandle = h;
+    await idbSet('autoDirHandle', h);
+    return true;
+  }catch(e){ console.warn('[autoguardado] no se pudo conectar la carpeta:', e.message); return false; }
+}
+
+async function autorizarCarpetaYGuardar(){ // clic del botón del banner: dentro del gesto de usuario
+  const ok = await conectarAutoGuardar(true);
+  if(ok){
+    // Si la carpeta ya contiene el .json (p. ej. primera vez en otro computador) → cargarlo; si no, escribir el estado actual
+    const info = await cargarAutoSilencioso();
+    if(info && tareas.length > 0){ render(); renderNotifs(); chequearPlazos(); }
+    else { await autoEscribirJSON(); } // deja el .json actual desde ya, no recién al cerrar
+    mostrarBannerAuto('<b>💾 Auto-guardado activo:</b> al cerrar se guarda <code>' + autoFileName() + '</code> en esa carpeta. Copia la carpeta completa para llevarlo a otro computador.' +
+      (info && info.n ? ' Se restauraron <b>'+info.n+' tarea(s)</b> y <b>'+info.ids+' contraparte(s)</b>.' : ''));
+    setTimeout(ocultarBannerAuto, 9000);
+  } else { ocultarBannerAuto(); }
+}
+
+// Guarda el .json en la carpeta del HTML (modo readwrite). Devuelve true si quedó escrito.
+async function autoEscribirJSON(){
+  if(!_autoDirHandle) return false;
+  try{
+    const fh = await _autoDirHandle.getFileHandle(autoFileName(), {create:true});
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify(autoPayload(), null, 2));
+    await w.close();
+    return true;
+  }catch(e){ console.warn('[autoguardado] fallo al escribir:', e.message); return false; }
+}
+
+function mostrarBannerAuto(html){ const b=document.getElementById('autoBanner'); if(b){ b.innerHTML=html; b.style.display='block'; } }
+function ocultarBannerAuto(){ const b=document.getElementById('autoBanner'); if(b) b.style.display='none'; }
+
+// Carga el .json guardado sin preguntar. Si no existe (primera vez) → estado limpio, SIN error.
+async function cargarAutoSilencioso(){
+  try{
+    let texto = null;
+    // 1) Carpeta real del HTML (Chrome/Edge conectados): datos_<trimestre>.json
+    if(_autoDirHandle){
+      for(const n of [autoFileName(), 'datos.json']){
+        try{ const fh = await _autoDirHandle.getFileHandle(n); texto = await (await fh.getFile()).text(); break; }catch(e){}
+      }
+      // 2) Si el HTML está en una subcarpeta, buscar en la raíz de la carpeta elegida: Datos/datos_*.json
+      if(!texto){
+        try{
+          const dh = await _autoDirHandle.getDirectoryHandle('Datos', {create:false});
+          for(const n of ['datos_T1.json','datos_T2.json','datos_T3.json','datos_T4.json']){
+            try{ const fh = await dh.getFileHandle(n); texto = await (await fh.getFile()).text(); break; }catch(e){}
+          }
+        }catch(e){}
+      }
+    }
+    // 3) Fallback: localStorage de este navegador (mismo equipo, mismo archivo HTML)
+    if(texto === null && location.protocol !== 'file:'){
+      const rawT = localStorage.getItem('gt_tareas');
+      if(rawT){ try{ const t = JSON.parse(rawT); if(t && t.length){
+        texto = JSON.stringify({ tareas:t, configuracion:{ ids:JSON.parse(localStorage.getItem('gt_listaIds')||'[]'), tema:localStorage.getItem('gt_tema')||'light' }, plantillas:JSON.parse(localStorage.getItem('gt_plantillas')||'[]'), auditLog:JSON.parse(localStorage.getItem('gt_audit')||'[]') });
+      } }catch(e){} }
+    }
+    if(!texto || !texto.trim()) return false;   // ← primera vez: sin JSON → no hay error
+
+    const data = JSON.parse(texto);
+    if(!data.tareas) return false;               // archivo ajeno/roto → se ignora en silencio
+    tareas = data.tareas.map(t => {
+      const c = {...t};
+      if(!c.codigo) c.codigo = generarCodigo(c.contraparte, c.inicio);
+      if(!c.prioridad) c.prioridad = 'med';
+      if(c.recordar === undefined) c.recordar = 2;
+      if(!c.categoria) c.categoria = 'otro';
+      if(!c.comentarios) c.comentarios = [];
+      if(!c.dependencia) c.dependencia = '';
+      return c;
+    });
+    if(data.configuracion){
+      listaIds = (data.configuracion.ids && data.configuracion.ids.length) ? data.configuracion.ids.slice() : Contraparte_DEFAULT.slice();
+      if(data.configuracion.tema){ localStorage.setItem('gt_tema', data.configuracion.tema); document.documentElement.setAttribute('data-theme', data.configuracion.tema); actualizarBtnTema(data.configuracion.tema); }
+    } else listaIds = Contraparte_DEFAULT.slice();
+    plantillas = (data.plantillas || []).slice();
+    auditLog = (data.auditLog || []).slice(-MAX_AUDIT);
+    trimestreCargado = true;
+    store.save();
+    return {n: tareas.length, ids: listaIds.length, archivo: autoFileName()};
+  }catch(e){ console.warn('[autocarga] ignorando datos previos:', e.message); return false; }
+}
+
+// Guarda el .json al cerrar, sin preguntar. (pagehide cubre el botón de cierre incluso en pestaña inactiva)
+async function guardarAutoAlCerrar(){
+  try{
+    const ok = await autoEscribirJSON();
+    if(ok){ console.log('[autoguardado] ' + autoFileName() + ' guardado al cerrar'); }
+    else { mostrarBannerAuto('<b>⚠️ Auto-guardado:</b> no se pudo escribir el .json. Usa <i>💾 Guardar en carpeta</i> para respaldo manual.'); }
+  }catch(e){ console.warn('[autoguardado] al cerrar:', e.message); }
+}
+
+// Guardado automático (debounce) tras cada cambio → incluso si el navegador muere, queda JSON actual
+function autoGuardarProgramado(){ clearTimeout(_autoSaveTimer); _autoSaveTimer = setTimeout(async ()=>{ await autoEscribirJSON(); }, 1500); }
+
+async function idbGet(key){ // onupgradeneeded SIEMPRE presente: en primer arranque crea el store 'kv' (si no, la 1ra apertura deja el DB v1 vacío y el 2do set falla)
+  const db = await new Promise((res,rej)=>{ const r=indexedDB.open('seg_tareas_auto',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+  return await new Promise((res,rej)=>{ const t=db.transaction('kv','readonly'); const q=t.objectStore('kv').get(key); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); });
+}
+async function idbSet(key,val){
+  const db = await new Promise((res,rej)=>{ const r=indexedDB.open('seg_tareas_auto',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+  return await new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').put(val,key); t.oncomplete=res; t.onerror=()=>rej(t.error); });
+}
+
+function restaurarEstado(info){ // info = {n, archivo} | null (primera vez)
+  document.getElementById('fInicio').value = new Date().toISOString().slice(0,10);
+  render(); renderNotifs(); chequearPlazos(); renderPaSelect(); renderIdList();
+  renderPlantillas(); renderAudit();
+  tick(); setInterval(tick,30000);
+  actualizarCountdown(); setInterval(actualizarCountdown,1000);
+  setInterval(chequearPlazos, 60000);
+  // Restaurar preferencia de ancho de panel
+  const savedAncho = localStorage.getItem('gt_panelAncho');
+  if(savedAncho !== null){
+    nivelPanel = parseInt(savedAncho);
+    if(anchosPanel[nivelPanel]) document.querySelector('.grid').classList.add(anchosPanel[nivelPanel]);
+    document.getElementById('panelResizeBtn').textContent = ['↔ Normal','↔ Ampliado','↔ Máximo'][nivelPanel];
+  }
+  actualizarDataStatus();
+  // Estado de auto-guardado (solo informativo; nunca bloquea el uso)
+  const FSA_DISP = ('showDirectoryPicker' in window);
+  if(FSA_DISP){
+    if(_autoDirHandle){
+      mostrarBannerAuto('<b>💾 Auto-guardado activo:</b> al cerrar se guarda <code>' + autoFileName() + '</code> en la carpeta del HTML. Copia la carpeta completa para llevarlo a otro computador.');
+      setTimeout(ocultarBannerAuto, 10000);
+    } else {
+      mostrarBannerAuto('<b>💾 Auto-guardado:</b> <button class="btn-primary" style="padding:3px 12px;font-size:12px;margin:0 6px;border-radius:6px;cursor:pointer" onclick="autorizarCarpetaYGuardar()">Autorizar carpeta (una vez)</button><span style="color:#556">Elige la carpeta donde está este HTML. Después, al cerrar se guarda solo el <code>' + autoFileName() + '</code>.</span>');
+      setTimeout(ocultarBannerAuto, 30000);
+    }
+  } else if(location.protocol === 'file:'){
+    mostrarBannerAuto('<b>i</b> Auto-guardado por carpeta requiere Chrome o Edge. Mientras tanto usa <i>💾 Guardar en carpeta</i> para portar a otro computador.');
+    setTimeout(ocultarBannerAuto, 12000);
+  }
+}
+
+window.addEventListener('pagehide', guardarAutoAlCerrar); // "sin preguntar": sin preventDefault no sale el diálogo del navegador
+
+
+// ── Obtener nombre de trimestre actual ──
+function getTrimestreKey(){
+  const m = (new Date().getMonth()+1);
+  if(m<=3) return 'T1';
+  if(m<=6) return 'T2';
+  if(m<=9) return 'T3';
+  return 'T4';
+}
+
+// ── Exportar a carpeta: guarda JSON con metadatos + extrae imágenes ──
+async function exportarACarpeta(){
+  const tk = getTrimestreKey();
+  
+  // Construir payload serializable (sin dataURLs para mantener JSON ligero)
+  const payload = {
+    version: '4.0',
+    exportado: new Date().toISOString(),
+    trimestre: tk,
+    tareas: tareas.map(t => {
+      const copia = {...t};
+      // Si tiene imagen como dataURL, reemplazar por referencia relativa
+      if(copia.imagen && copia.imagen.startsWith('data:')){
+        copia.imagen = `imagenes/${copia.uid}.png`;
+      } else if(copia.imagen){
+        // Si ya es una ruta relativa, mantenerla
+        copia.imagen = copia.imagen;
+      }
+      return copia;
+    }),
+    configuracion: {
+      tema: localStorage.getItem('gt_tema') || 'light',
+      trimestre: localStorage.getItem('gt_trimestre') || '',
+      ids: listaIds ? listaIds : [],
+    },
+    plantillas: plantillas || [],
+    auditLog: auditLog || []
+  };
+  
+  // Guardar JSON
+  const jsonBlob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const jsonUrl = URL.createObjectURL(jsonBlob);
+  const a = document.createElement('a');
+  a.href = jsonUrl;
+  a.download = `datos_${tk}.json`;
+  a.click();
+  URL.revokeObjectURL(jsonUrl);
+  
+  // Extraer imágenes como archivos individuales
+  const imagenes = tareas.filter(t => t.imagen && t.imagen.startsWith('data:'));
+  if(imagenes.length > 0){
+    let count = 0;
+    for(const t of imagenes){
+      try{
+        const resp = await fetch(t.imagen);
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `imagenes/${t.uid}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        count++;
+        await new Promise(r => setTimeout(r, 100));
+      }catch(e){
+        console.warn('No se pudo extraer imagen de tarea', t.uid, e);
+      }
+    }
+    toast(`💾 datos_${tk}.json + ${count} imagen(es) descargadas`);
+  } else {
+    toast(`💾 datos_${tk}.json guardado (sin imágenes)`);
+  }
+  actualizarDataStatus(true);
+}
+
+// ── Cargar desde archivo (prompt startup o botón) ──
+async function cargarDesdeArchivo(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    
+    if(!data.tareas){
+      alert('❌ Archivo no válido. Debe ser un respaldo de seguimiento v4.');
+      return;
+    }
+    
+    // Restaurar tareas (las imágenes ya son rutas relativas en el JSON)
+    tareas = data.tareas.map(t => {
+      const copia = {...t};
+      // Asegurar campos que faltan por retrocompatibilidad
+      if(!copia.codigo) copia.codigo = generarCodigo(copia.contraparte, copia.inicio);
+      if(!copia.prioridad) copia.prioridad = 'med';
+      if(copia.recordar === undefined) copia.recordar = 2;
+      if(!copia.categoria) copia.categoria = 'otro';
+      if(!copia.comentarios) copia.comentarios = [];
+      if(!copia.dependencia) copia.dependencia = '';
+      return copia;
+    });
+    
+    // Restaurar lista de IDs
+    if(data.configuracion && data.configuracion.ids){
+      listaIds = data.configuracion.ids;
+    }
+    
+    // Restaurar configuración
+    if(data.configuracion){
+      if(data.configuracion.tema){
+        localStorage.setItem('gt_tema', data.configuracion.tema);
+        document.documentElement.setAttribute('data-theme', data.configuracion.tema);
+        actualizarBtnTema(data.configuracion.tema);
+      }
+    }
+    
+    // Restaurar plantillas
+    if(data.plantillas) plantillas = data.plantillas;
+    
+    // Restaurar audit log
+    if(data.auditLog) auditLog = data.auditLog;
+    
+    // Guardar en localStorage
+    store.save();
+    trimestreCargado = true;
+    
+    // Actualizar hint
+    const hint = document.getElementById('startupFileHint');
+    if(hint) hint.innerHTML = `<strong>✅ Cargado:</strong> ${data.tareas.length} tarea(s) desde ${file.name}`;
+    
+    toast(`📂 ${data.tareas.length} tarea(s) cargadas desde ${file.name}`);
+    
+    // Si es startup, cerrar overlay y renderizar
+    if(datosCargados === false){
+      datosCargados = true;
+      document.getElementById('startupOverlay').style.display = 'none';
+    }
+    
+    render(); renderNotifs(); chequearPlazos(); renderPaSelect(); renderIdList();
+    renderPlantillas(); renderAudit();
+    
+  } catch(e){
+    console.error('Error cargando datos:', e);
+    alert('❌ Error al procesar el archivo: ' + e.message);
+  }
+  
+  // Limpiar input para permitir recargar
+  event.target.value = '';
+}
+
+// ── Cargar desde carpeta (botón en toolbar) ──
+function cargarDesdeCarpeta(){
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = async (e) => {
+    await cargarDesdeArchivo(e);
+    render(); renderNotifs(); chequearPlazos(); renderPaSelect(); renderIdList();
+    renderPlantillas(); renderAudit();
+  };
+  input.click();
+}
+
+// ── Iniciar sin datos (botón en prompt startup) ──
+function iniciarSinDatos(){
+  datosCargados = true;
+  document.getElementById('startupOverlay').style.display = 'none';
+  // Inicializar con datos vacíos
+  listaIds = Contraparte_DEFAULT.slice();
+  store.load();
+  render(); renderNotifs(); chequearPlazos(); renderPaSelect(); renderIdList();
+  renderPlantillas(); renderAudit();
+}
+
+/* =========================================================
+   SINCROMIZACIÓN CON GITHUB  (fuente de verdad en la nube)
+   Guarda/carga data/datos.json del repo vía Contents API.
+   Config: owner, repo, branch, token  → localStorage gh_*
+   ========================================================= */
+const githubSync = (function(){
+  const DATA_PATH = 'data/datos.json';
+  const LS = { owner:'gh_owner', repo:'gh_repo', branch:'gh_branch', token:'gh_token' };
+
+  function cfg(){
+    return {
+      owner: localStorage.getItem(LS.owner)||'',
+      repo : localStorage.getItem(LS.repo) ||'',
+      branch: (localStorage.getItem(LS.branch)||'main').trim()||'main',
+      token: localStorage.getItem(LS.token)||''
+    };
+  }
+  function configured(){ const c=cfg(); return !!(c.owner && c.repo); }
+  function canWrite(){ const c=cfg(); return !!(c.owner && c.repo && c.token); }
+
+  // ── Construir payload en el mismo formato que datos_T3.json ──
+  function buildPayload(){
+    const tk = (typeof getTrimestreKey==='function') ? getTrimestreKey() : 'T3';
+    return {
+      version: '5.0',
+      exportado: new Date().toISOString(),
+      trimestre: tk,
+      origen: 'github-sync',
+      tareas: (tareas||[]).map(t=>{
+        const c = {...t};
+        // Imagen grande como dataURL → referencia relativa para no inflar el repo
+        if(c.imagen && typeof c.imagen==='string' && c.imagen.startsWith('data:') && c.imagen.length > 400000){
+          c.imagen = 'imagenes/'+(c.uid||'x')+'.png';
+        }
+        return c;
+      }),
+      configuracion: {
+        tema: localStorage.getItem('gt_tema') || 'light',
+        trimestre: localStorage.getItem('gt_trimestre') || tk,
+        ids: (listaIds && listaIds.length) ? listaIds.slice() : []
+      },
+      plantillas: (plantillas||[]).slice(),
+      auditLog: (auditLog||[]).slice(-MAX_AUDIT)
+    };
+  }
+
+  // ── Leer data/datos.json (Contents API si hay token, raw si no) ──
+  async function load(){
+    const c = cfg();
+    if(!configured()) return null;
+    let texto = null;
+    if(c.token){
+      try{
+        const r = await fetch('https://api.github.com/repos/'+c.owner+'/'+c.repo+'/contents/'+DATA_PATH+'?ref='+encodeURIComponent(c.branch), {headers:{'Authorization':'Bearer '+c.token,'Accept':'application/vnd.github+json'}});
+        if(r.ok){ const j=await r.json(); texto=decodeBase64(j.content||''); }
+      }catch(e){ console.warn('[gh] load con token falló', e.message); }
+    }
+    if(texto===null){ // fallback raw (solo repos públicos)
+      try{
+        const r = await fetch('https://raw.githubusercontent.com/'+c.owner+'/'+c.repo+'/'+encodeURIComponent(c.branch)+'/'+DATA_PATH, {cache:'no-store'});
+        if(r.ok) texto = await r.text(); else return null;
+      }catch(e){ console.warn('[gh] load raw falló', e.message); return null; }
+    }
+    try{ const d=JSON.parse(texto); if(d && Array.isArray(d.tareas)) return d; }catch(e){}
+    return null;
+  }
+
+  // ── Subir data/datos.json (Contents API, con token) ──
+  async function push(message){
+    const c = cfg();
+    if(!canWrite()) throw new Error('Falta el token de GitHub para guardar en la nube');
+    const payload = buildPayload();
+    let content = btoa(unescape(encodeURIComponent(JSON.stringify(payload,null,2))));
+    const apiBase = 'https://api.github.com/repos/'+c.owner+'/'+c.repo+'/contents/'+DATA_PATH;
+    const headers = {'Authorization':'Bearer '+c.token,'Accept':'application/vnd.github+json','Content-Type':'application/json'};
+
+    let sha = null;
+    try{
+      const g = await fetch(apiBase+'?ref='+encodeURIComponent(c.branch), {headers});
+      if(g.ok){ const gj=await g.json(); sha=gj.sha||null; }
+    }catch(e){}
+
+    for(let attempt=0; attempt<2; attempt++){
+      const body = { content, message: message || ('sync ' + new Date().toISOString()), branch: c.branch };
+      if(sha) body.sha = sha;
+      const r = await fetch(apiBase, {method:'PUT', headers, body: JSON.stringify(body)});
+      if(r.ok){ return payload; }
+      if(r.status===409 && attempt===0){ // conflicto → re-leer sha y reintento
+        try{ const g=await fetch(apiBase+'?ref='+encodeURIComponent(c.branch), {headers}); if(g.ok){ const gj=await g.json(); sha=gj.sha||null; } }catch(e){}
+        continue;
+      }
+      let detail=''; try{ const ej=await r.json(); detail=(ej.errors&&ej.errors[0]&&ej.errors[0].message)||ej.message||''; }catch(e){}
+      throw new Error('HTTP '+r.status+(detail?(' — '+detail):''));
+    }
+  }
+
+  // ── Debounce de subida tras cada cambio (no satura la API) ──
+  let _t=null, _lastPush=0;
+  function markLoaded(){ _lastPush=Date.now(); } // evita push redundante justo después de cargar desde GitHub
+  function schedulePush(){
+    if(!canWrite()) return;
+    clearTimeout(_t);
+    _t = setTimeout(async ()=>{
+      const now=Date.now(); if(now-_lastPush < 1500) return; // mínimo 1.5s entre push
+      setPill('push');
+      try{ await push(); _lastPush=Date.now(); setPill('ok'); }
+      catch(e){ console.warn('[gh] push', e.message); setPill('err'); mostrarBannerGh('<b>☁️ GitHub:</b> no se pudo guardar ('+esc(e.message)+'). Revisa el token o la conexión.'); setTimeout(clearBannerGh, 8000); }
+    }, 2500);
+  }
+
+  // ── UI: pill en data-bar + modal de configuración ──
+  function setPill(state){
+    const el=document.getElementById('ghStatus'); if(!el) return;
+    const c=cfg();
+    if(!configured()){ el.className='btn-sm'; el.textContent='⚙️ GitHub'; return; }
+    const map={ ok:['☁️ GitHub ✓','ok'], push:['☁️ Guardando…','warn'], err:['☁️ GitHub ⚠','err'] };
+    const m = map[state] || map.ok;
+    el.className='btn-sm gh-'+state; el.textContent=m[0]; el.title=c.owner+'/'+c.repo+' @ '+c.branch;
+  }
+  function mostrarBannerGh(html){ const b=document.getElementById('ghBanner'); if(b){ b.innerHTML=html; b.style.display='block'; } }
+  function clearBannerGh(){ const b=document.getElementById('ghBanner'); if(b) b.style.display='none'; }
+
+  function openSetup(prefill){
+    const c = cfg();
+    const ov = document.createElement('div');
+    ov.id='ghModalBg';
+    ov.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1200;display:flex;align-items:center;justify-content:center';
+    ov.onclick=function(e){ if(e.target===this) this.remove(); };
+    ov.innerHTML = `
+      <div class="card" style="width:460px;max-width:92vw;padding:20px">
+        <h2 style="margin-top:0;font-size:15px">☁️ Sincronización con GitHub</h2>
+        <p style="font-size:12.5px;color:var(--muted);line-height:1.6;margin:4px 0 14px">
+          Tus tareas se guardan en <code>data/datos.json</code> del repo. Al abrir la app se cargan de ahí — no hay que importar nada. Para guardar necesitas un token (fines-gratis) con permiso <b>Contents</b>.
+        </p>
+        <label>Owner / usuario</label><input id="ghOwner" value="${esc(c.owner)}" placeholder="mi-usuario">
+        <div class="row2"><div><label>Repo</label><input id="ghRepo" value="${esc(c.repo)}" placeholder="seguimiento"></div>
+        <div><label>Rama</label><input id="ghBranch" value="${esc(c.branch||'main')}" placeholder="main"></div></div>
+        <label>Token (PAT / fines-gratis)</label><input id="ghToken" type="password" value="${esc(prefill||c.token)}" placeholder="ghp_…  (solo para guardar)">
+        <div style="display:flex;gap:8px;margin-top:6px">
+          <button class="btn-primary" id="ghSaveBtn">Guardar y probar</button>
+          <button class="btn-sm" id="ghTestBtn" style="width:auto">Solo probar lectura</button>
+          <button class="btn-sm" onclick="document.getElementById('ghModalBg').remove()" style="width:auto;margin-left:auto">Cerrar</button>
+        </div>
+        <div id="ghMsg" style="font-size:12px;margin-top:10px;min-height:16px"></div>
+      </div>`;
+    document.body.appendChild(ov);
+
+    const msg=(t,ok)=>{ const m=ov.querySelector('#ghMsg'); m.style.color = ok?'var(--ok)':'var(--danger)'; m.textContent=t; };
+
+    ov.querySelector('#ghTestBtn').onclick = async ()=>{
+      const o=ov.querySelector('#ghOwner').value.trim(), rp=ov.querySelector('#ghRepo').value.trim();
+      if(!o||!rp){ msg('Falta owner y repo.', false); return; }
+      localStorage.setItem(LS.owner,o); localStorage.setItem(LS.repo,rp);
+      localStorage.setItem(LS.branch, ov.querySelector('#ghBranch').value.trim()||'main');
+      const tk=ov.querySelector('#ghToken').value.trim(); if(tk) localStorage.setItem(LS.token,tk);
+      msg('Probando lectura…', true);
+      const d = await load();
+      if(d){ msg('✅ Lectura OK: '+d.tareas.length+' tareas encontradas.', true); setPill('ok'); }
+      else { msg('⚠️ No se encontró data/datos.json (¿repo privado sin token? ¿path distinto?).', false); }
+    };
+
+    ov.querySelector('#ghSaveBtn').onclick = async ()=>{
+      const o=ov.querySelector('#ghOwner').value.trim(), rp=ov.querySelector('#ghRepo').value.trim();
+      if(!o||!rp){ msg('Falta owner y repo.', false); return; }
+      localStorage.setItem(LS.owner,o); localStorage.setItem(LS.repo,rp);
+      localStorage.setItem(LS.branch, ov.querySelector('#ghBranch').value.trim()||'main');
+      const tk=ov.querySelector('#ghToken').value.trim(); if(tk) localStorage.setItem(LS.token,tk); else localStorage.removeItem(LS.token);
+      msg('Guardando en GitHub…', true); setPill('push');
+      try{ await push('sync inicial desde la app'); _lastPush=Date.now(); setPill('ok');
+        msg('✅ Guardado '+buildPayload().tareas.length+' tareas en '+o+'/'+rp+'.', true); setTimeout(()=>ov.remove(),900); }
+      catch(e){ setPill('err'); msg('❌ '+e.message, false); }
+    };
+  }
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+  function decodeBase64(b64){ try{ b64=b64.replace(/\n/g,''); return decodeURIComponent(escape(atob(b64))); }catch(e){ return atob(b64); } }
+
+  // Instalar pill en la barra de datos (una sola vez)
+  function installUI(){
+    const bar=document.querySelector('.data-bar'); if(!bar || document.getElementById('ghStatus')) return;
+    const b=document.createElement('button');
+    b.id='ghStatus'; b.className='btn-sm'; b.textContent='⚙️ GitHub'; b.title='Configurar sincronización con GitHub';
+    b.onclick=()=>openSetup(); bar.insertBefore(b, bar.querySelector('#dataStatus'));
+    const banner=document.createElement('div'); banner.id='ghBanner'; banner.style.cssText='display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:1300;background:#1f2a37;color:#fff;padding:9px 16px;border-radius:8px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.25)';
+    document.body.appendChild(banner);
+    setPill(configured()?'ok':'idle');
+  }
+
+  // Hook: cada store.save() → agendar push a la nube (debounce)
+  function installHook(){
+    const orig = autoGuardarProgramado;
+    window.autoGuardarProgramado = function(){ orig(); schedulePush(); };
+    // Subida de despedida (best-effort, no bloquea el cierre)
+    window.addEventListener('pagehide', ()=>{ try{ if(canWrite()) push('sync al cerrar'); }catch(e){} });
+  }
+
+  return { load, push, configured, canWrite, schedulePush, setPill, installUI, installHook, buildPayload, cfg, mostrarBannerGh, clearBannerGh, markLoaded };
+})();
+
+/* ===== Init ===== */
+detalleBg.addEventListener('click', e=>{ if(e.target===detalleBg) cerrarDetalle(); });
+modalBg.addEventListener('click', e=>{ if(e.target===modalBg) cerrarModal(); });
+document.getElementById('tplModalBg').addEventListener('click', e=>{ if(e.target.id==='tplModalBg') cerrarModalPlantilla(); });
+habilitarPegadoImagen('fDetalle', d=>{ imgNueva=d; }, 'f');
+habilitarPegadoImagen('eDetalle', d=>{ imgEdicion=d; }, 'e');
+document.getElementById('themeToggle').onclick = toggleTheme;
+
+// ── Carga inicial con auto-guardado portátil ──
+(async function(){
+  // Instalar sincronización con GitHub (pill + hook de guardado) ANTES de cargar datos
+  githubSync.installUI();
+  githubSync.installHook();
+
+  // Conectar la carpeta del HTML (si ya fue autorizada antes: sin pedir nada)
+  await conectarAutoGuardar(false);
+
+  const aplicarDatos = function(data, origen){
+    tareas = (data.tareas||[]).map(t => {
+      const c = {...t};
+      if(!c.codigo) c.codigo = generarCodigo(c.contraparte, c.inicio);
+      if(!c.prioridad) c.prioridad = 'med';
+      if(c.recordar === undefined) c.recordar = 2;
+      if(!c.categoria) c.categoria = 'otro';
+      if(!c.comentarios) c.comentarios = [];
+      if(!c.dependencia) c.dependencia = '';
+      return c;
+    });
+    if(data.configuracion){
+      listaIds = (data.configuracion.ids && data.configuracion.ids.length) ? data.configuracion.ids.slice() : Contraparte_DEFAULT.slice();
+      if(data.configuracion.tema){ localStorage.setItem('gt_tema', data.configuracion.tema); document.documentElement.setAttribute('data-theme', data.configuracion.tema); actualizarBtnTema(data.configuracion.tema); }
+    } else listaIds = Contraparte_DEFAULT.slice();
+    plantillas = (data.plantillas || []).slice();
+    auditLog = (data.auditLog || []).slice(-MAX_AUDIT);
+    notifs = (data.notifs || []);
+    trimestreCargado = true; datosCargados = true; store.save();
+  };
+
+  try{
+    // 0) GITHUB: fuente de verdad en la nube → prioridad máxima (no hay que importar nada)
+    if(githubSync.configured()){
+      const gdata = await githubSync.load();
+      if(gdata){
+        aplicarDatos(gdata, 'github');
+        githubSync.markLoaded();
+        console.log('[gh] '+gdata.tareas.length+' tareas cargadas desde GitHub');
+        githubSync.setPill('ok');
+        setTimeout(()=>{
+          githubSync.mostrarBannerGh('<b>☁️ Cargado de GitHub:</b> <code>'+ (githubSync.cfg().owner)+'/'+(githubSync.cfg().repo) +'</code> — '+gdata.tareas.length+' tareas. Se guarda solo al cambiar.');
+          setTimeout(githubSync.clearBannerGh, 9000);
+        }, 400);
+      } else {
+        githubSync.setPill('err');
+        console.warn('[gh] no se pudo leer data/datos.json; usando fuente local');
+      }
+    }
+    // 1) Datos embebidos en el HTML (solo si GitHub no cargó) → prioridad siguiente
+    else if(typeof DATOS_EMBEBIDOS !== 'undefined'){
+      console.log('Cargando datos embebidos...');
+      aplicarDatos({ tareas:DATOS_EMBEBIDOS.tareas||[], notifs:DATOS_EMBEBIDOS.notifs||[], listaIds:DATOS_EMBEBIDOS.listaIds, plantillas:DATOS_EMBEBIDOS.plantillas||[], auditLog:DATOS_EMBEBIDOS.auditLog||[], configuracion:{ ids:DATOS_EMBEBIDOS.listaIds } }, 'embed');
+    } else {
+      // 2) Borrar las tareas de la sesión anterior y cargar el .json que quedó al cerrar, SIN preguntar.
+      const info = await cargarAutoSilencioso();
+      if(info){ console.log('[autocarga] ' + info.n + ' tarea(s), ' + info.ids + ' contraparte(s) cargadas de ' + info.archivo); }
+    }
+  }catch(e){ console.warn('[autocarga]', e.message); }
+  // El wizard manual queda como respaldo (botón "📂 Cargar carpeta"), nunca bloquea el arranque
+  document.getElementById('startupOverlay').style.display = 'none';
+  restaurarEstado(null);
+})();
+
+</script>
+<div class="auto-banner" id="autoBanner"></div>
+</body>
+</html>

@@ -1,0 +1,50 @@
+name: Desplegar app de seguimiento (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Permisos para deploy a Pages + para que la app pueda leer/escribir data/datos.json
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Solo subimos los archivos que sirve la app (index + data). Evitamos README, .github, etc.
+      - name: Prepara artefacto de Pages
+        run: |
+          mkdir _site
+          cp index.html _site/index.html
+          mkdir -p _site/data
+          cp data/datos.json _site/data/datos.json
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir artefacto
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
