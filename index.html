@@ -2131,7 +2131,11 @@ function restaurarEstado(info){ // info = {n, archivo} | null (primera vez)
   actualizarDataStatus();
   // Estado de auto-guardado (solo informativo; nunca bloquea el uso)
   const FSA_DISP = ('showDirectoryPicker' in window);
-  if(FSA_DISP){
+  if(githubSync.configured()){
+    // Modo nube: la sincronización con GitHub es suficiente → sin prompts de carpeta
+    mostrarBannerAuto('<b>☁️ Sincronizado con GitHub:</b> las tareas se guardan solas en la nube — al abrir desde cualquier computador verás este listado.');
+    setTimeout(ocultarBannerAuto, 6000);
+  } else if(FSA_DISP){
     if(_autoDirHandle){
       mostrarBannerAuto('<b>💾 Auto-guardado activo:</b> al cerrar se guarda <code>' + autoFileName() + '</code> en la carpeta del HTML. Copia la carpeta completa para llevarlo a otro computador.');
       setTimeout(ocultarBannerAuto, 10000);
