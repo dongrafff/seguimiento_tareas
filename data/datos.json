@@ -1,6 +1,6 @@
 {
   "version": "5.0",
-  "exportado": "2026-10-20T17:15:40.634Z",
+  "exportado": "2026-10-20T15:15:58.794Z",
   "trimestre": "T4",
   "origen": "github-sync",
   "tareas": [
@@ -45,26 +45,6 @@
       "recordada": false,
       "creada": "2026-08-02T15:25:02.486668",
       "categoria": "otro"
-    },
-    {
-      "uid": "1792516529797495930",
-      "codigo": "SEG-020101-261020-E6J6",
-      "contraparte": "020101",
-      "letra": "prueba",
-      "dias": 5,
-      "inicio": "2026-10-20",
-      "detalle": "",
-      "imagen": null,
-      "prioridad": "med",
-      "recordar": 2,
-      "trimestre": "T3",
-      "dependencia": "",
-      "comentarios": [],
-      "iniciada": false,
-      "completada": false,
-      "avisada": false,
-      "recordada": false,
-      "creada": "2026-10-20T17:15:29.797Z"
     }
   ],
   "configuracion": {
@@ -145,12 +125,7 @@
   "plantillas": [],
   "auditLog": [
     {
-      "time": "2026-10-20T17:15:29.797Z",
-      "action": "CREAR",
-      "detail": "Tarea \"prueba\" → 1 contraparte(es)"
-    },
-    {
-      "time": "2026-10-20T17:15:20.760Z",
+      "time": "2026-10-20T15:15:32.710Z",
       "action": "BORRAR",
       "detail": "14 tarea(s) seleccionada(s)"
     },
