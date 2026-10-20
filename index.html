@@ -270,6 +270,8 @@
   .startup-card .file-hint{font-size:11px;color:var(--muted);margin-top:8px;text-align:center}
   .startup-card .file-hint strong{color:var(--ok)}
 </style>
+<!-- SheetJS (xlsx) para cargar listas de clientes desde Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -362,8 +364,8 @@
         <input id="idFiltro" placeholder="Filtrar listado..." oninput="renderIdList()" autocomplete="off">
         <button class="btn-sm" onclick="toggleTodos(true)">Todos</button>
         <button class="btn-sm" onclick="toggleTodos(false)">Ninguno</button>
-        <button class="btn-sm" onclick="document.getElementById('csvFileInput').click()" title="Cargar lista de clientes desde CSV">📄 Cargar CSV</button>
-        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="cargarCSVClientes(event)">
+        <button class="btn-sm" onclick="document.getElementById('csvFileInput').click()" title="Cargar lista de clientes desde CSV o Excel (.xlsx/.xls) — columna Cliente final">📊 Cargar CSV/XLSX</button>
+        <input type="file" id="csvFileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="cargarArchivoClientes(event)">
       </div>
       <div id="idList" class="id-list"></div>
       <div class="id-add">
@@ -916,11 +918,36 @@ function removerId(){
   store.save(); renderPaSelect(); renderIdList();
 }
 
-/* ===== CARGA CSV DE CLIENTES ===== */
-function cargarCSVClientes(event){
+/* ===== CARGA DE CLIENTES (CSV o XLSX/XLS) — columna "Cliente final" ===== */
+// Normaliza encabezados para comparar sin acentos/mayúsculas/separadores: "cliente final" → CLIENTEFINAL
+function normHeader(h){ return String(h==null?'':h).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,''); }
+// Busca la columna de cliente final entre los encabezados; devuelve índice o -1
+function idxColClienteFinal(headers){
+  const norm = headers.map(normHeader);
+  let i = norm.findIndex(h => h === 'CLIENTEFINAL' || h === 'CLIENTE FINAL'.replace(/\s/g,''));
+  if(i !== -1) return i;
+  i = norm.findIndex(h => h.includes('CLIENTEFINAL')); // variantes: CLIENTE_FINAL, CLIENTE FINAL, NOMBRE_CLIENTE_FINAL...
+  if(i !== -1) return i;
+  i = norm.findIndex(h => /CLIENTE/.test(h) && !/CODIGO|RUT|ID/.test(h)); // último recurso: columna "cliente" simple
+  return i;
+}
+
+function cargarArchivoClientes(event){
   const file = event.target.files[0];
   if(!file) return;
-  
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  try{
+    if(ext === 'csv'){ leerCSVClientes(file, event); }
+    else if(ext === 'xlsx' || ext === 'xls'){ leerXLSXClientes(file, event); }
+    else { alert('Formato no soportado: usa .csv, .xlsx o .xls'); }
+  }catch(err){
+    alert('Error al procesar el archivo: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ── CSV (comportamiento original) ──
+function leerCSVClientes(file, event){
   const reader = new FileReader();
   reader.onload = function(e){
     try{
@@ -930,66 +957,92 @@ function cargarCSVClientes(event){
         alert('El CSV no tiene datos suficientes (se necesita encabezado + al menos 1 fila).');
         return;
       }
-      
       // Detectar separador (coma o punto y coma)
       const sep = lines[0].includes(';') ? ';' : ',';
-      
-      // Parsear encabezado
-      const headers = lines[0].split(sep).map(h => h.trim().toUpperCase().replace(/[^A-Z0-9]/g, '_'));
-      
-      // Buscar columna CLIENTE_FINAL
-      const idxFinal = headers.findIndex(h => 
-        h.includes('CLIENTE_FINAL') || h.includes('CLIENTE FINAL') || h === 'CLIENTE_FINAL'
-      );
-      
+      const headers = lines[0].split(sep);
+      const idxFinal = idxColClienteFinal(headers);
       if(idxFinal === -1){
-        alert(`No se encontró la columna "CLIENTE_FINAL" en el CSV.\n\nColumnas detectadas:\n${headers.join(', ')}`);
+        alert(`No se encontró la columna "Cliente final" en el CSV.\n\nColumnas detectadas:\n${headers.join(', ')}`);
         return;
       }
-      
-      // Extraer valores únicos de CLIENTE_FINAL
       const clientes = new Set();
       for(let i = 1; i < lines.length; i++){
         const cols = lines[i].split(sep);
         if(cols[idxFinal]){
-          const val = cols[idxFinal].trim();
-          if(val && val.length > 0){
-            clientes.add(val);
-          }
+          const val = String(cols[idxFinal]).trim();
+          if(val) clientes.add(val);
         }
       }
-      
-      const listaClientes = Array.from(clientes);
-      
-      if(listaClientes.length === 0){
-        alert('No se encontraron valores en la columna CLIENTE_FINAL.');
-        return;
-      }
-      
-      if(!confirm(`Se detectaron ${listaClientes.length} clientes únicos en la columna CLIENTE_FINAL.\n\n¿Reemplazar el listado actual de contrapartes con estos datos?\n\nLas tareas existentes no se verán afectadas.`)){
-        return;
-      }
-      
-      // Reemplazar lista
-      listaIds = listaClientes;
-      seleccion.clear();
-      store.save();
-      renderPaSelect();
-      renderIdList();
-      actualizarDataStatus('✓ CSV cargado: ' + listaClientes.length + ' clientes');
-      alert(`✅ Se cargaron ${listaClientes.length} clientes desde ${file.name}.`);
-      
-      // Limpiar input para permitir recargar el mismo archivo
-      event.target.value = '';
+      aplicarClientes(clientes, file.name, event);
     }catch(err){
       alert('Error al procesar el CSV: ' + err.message);
       console.error(err);
     }
   };
-  reader.onerror = function(){
-    alert('Error al leer el archivo.');
-  };
+  reader.onerror = function(){ alert('Error al leer el archivo.'); };
   reader.readAsText(file);
+}
+
+// ── XLSX / XLS (SheetJS) — toma la columna "Cliente final" de la primera hoja con datos ──
+function leerXLSXClientes(file, event){
+  if(typeof XLSX === 'undefined'){
+    alert('No se pudo cargar el lector de Excel (¿sin internet?).\nPrueba de nuevo o usa un .csv.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      let headers = null, idxFinal = -1, filas = [];
+      for(const name of wb.SheetNames){
+        const ws = wb.Sheets[name];
+        if(!ws || !ws['!ref']) continue;
+        const arr = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, defval:''});
+        if(arr.length < 2) continue;
+        const h = arr[0].map(x => String(x==null?'':x));
+        const idx = idxColClienteFinal(h);
+        if(idx !== -1){ headers = h; idxFinal = idx; filas = arr.slice(1); break; }
+      }
+      if(headers === null){
+        // ninguna hoja tiene la columna esperada → reportar las columnas de la primera hoja
+        const ws0 = wb.Sheets[wb.SheetNames[0]];
+        const cols0 = XLSX.utils.sheet_to_json(ws0||{}, {header:1, raw:false, defval:''})[0] || [];
+        alert(`No se encontró la columna "Cliente final" en el Excel.\n\nColumnas de "${wb.SheetNames[0]}":\n${cols0.join(', ')}`);
+        return;
+      }
+      const clientes = new Set();
+      for(const fila of filas){
+        const val = String(fila[idxFinal]==null?'':fila[idxFinal]).trim();
+        if(val) clientes.add(val);
+      }
+      aplicarClientes(clientes, file.name, event);
+    }catch(err){
+      alert('Error al procesar el Excel: ' + err.message);
+      console.error(err);
+    }
+  };
+  reader.onerror = function(){ alert('Error al leer el archivo.'); };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Aplicar la lista de clientes detectados (común a CSV y XLSX) ──
+function aplicarClientes(clientes, nombreArchivo, event){
+  const listaClientes = Array.from(clientes).filter(Boolean);
+  if(listaClientes.length === 0){
+    alert('No se encontraron valores en la columna "Cliente final".');
+    return;
+  }
+  if(!confirm(`Se detectaron ${listaClientes.length} clientes únicos en la columna "Cliente final" (${nombreArchivo}).\n\n¿Reemplazar el listado actual de contrapartes con estos datos?\n\nLas tareas existentes no se verán afectadas.`)){
+    return;
+  }
+  listaIds = listaClientes;
+  seleccion.clear();
+  store.save();
+  renderPaSelect();
+  renderIdList();
+  actualizarDataStatus('✓ ' + nombreArchivo + ': ' + listaClientes.length + ' clientes');
+  alert(`✅ Se cargaron ${listaClientes.length} clientes desde ${nombreArchivo}.`);
+  if(event && event.target) event.target.value = ''; // permitir recargar el mismo archivo
 }
 function eliminarContraparteDelListado(id){
   if(!listaIds.includes(id)){ return; }
