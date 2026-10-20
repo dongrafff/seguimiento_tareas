@@ -1,6 +1,6 @@
 {
   "version": "5.0",
-  "exportado": "2026-10-20T15:42:16.753Z",
+  "exportado": "2026-10-20T15:43:20.763Z",
   "trimestre": "T4",
   "origen": "github-sync",
   "tareas": [
@@ -61,7 +61,7 @@
       "dependencia": "",
       "comentarios": [],
       "iniciada": false,
-      "completada": false,
+      "completada": true,
       "avisada": false,
       "recordada": false,
       "creada": "2026-10-20T17:15:29.797Z",
@@ -145,6 +145,11 @@
   },
   "plantillas": [],
   "auditLog": [
+    {
+      "time": "2026-10-20T15:43:10.737Z",
+      "action": "COMPLETAR",
+      "detail": "prueba (020101)"
+    },
     {
       "time": "2026-10-20T17:15:29.797Z",
       "action": "CREAR",
