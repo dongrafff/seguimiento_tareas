@@ -9,8 +9,8 @@ se suben solas.
 
 - `index.html` es una sola página (misma app que antes) con un módulo de sincronización añadido.
 - **Fuente de verdad:** el archivo `data/datos.json` del repo (mismo formato que los respaldos `datos_T3.json`).
-- Al abrir: carga desde GitHub → si no está configurado, usa carpeta/localStorage como antes.
-- Al guardar cualquier cambio: se programa una subida a GitHub (con *debounce*, no satura la API).
+- Al abrir: la app detecta sola el repo desde la URL de Pages (`https://<user>.github.io/<repo>/`) y carga las tareas de `data/datos.json`. **No hay nada que configurar ni importar** — funciona en cualquier computador.
+- Para **guardar** desde un navegador nuevo basta agregar una vez el token (botón ☁️ GitHub); después cada cambio se sube solo a la nube (*debounce*, no satura la API).
 
 ## Despliegue en 4 pasos
 
@@ -24,8 +24,7 @@ se suben solas.
    ```
 3. **Activar GitHub Pages** en el repo: `Settings → Pages → Source = Deploy from a branch`
    (o esperar al primer deploy del workflow `.github/workflows/pages.yml`, que publica solo `index.html` + `data/`).
-4. Abrir la URL de Pages (`https://<TU_USUARIO>.github.io/seguimiento-tareas/`) y, en la barra de datos,
-   clic en **⚙️ GitHub** → llenar *Owner*, *Repo* y un **token**, botón **Guardar y probar**.
+4. Abrir la URL de Pages (`https://<TU_USUARIO>.github.io/seguimiento-tareas/`): las tareas se cargan solas, sin pedir nada. Para guardar desde ese navegador: clic en **☁️ GitHub** → pegar un **token**, botón **Guardar y probar**.
 
 > La primera vez que guardas desde la app se crea actualiza `data/datos.json` con tus tareas.
 > El repo ya trae un `data/datos.json` semilla (16 tareas del T3) — puedes editarlo o dejarlo.
@@ -51,6 +50,7 @@ hace falta un token con permiso `Contents`:
 
 ## Notas / límites
 
-- El token se guarda por navegador; cada equipo debe configurarlo una vez.
+- La **lectura** es automática en cualquier equipo (se detecta el repo desde la URL de Pages). El token se guarda por navegador y solo se necesita para **guardar**: cada equipo nuevo lo agrega una vez.
+- Si el repo fuera privado, la lectura también requeriría el token en cada navegador.
 - Imágenes muy grandes (>~400 KB como dataURL) se refieren a `imagenes/<uid>.png` para no inflar el repo.
-- Para empezar de cero en otro equipo: basta abrir la URL y poner owner/repo/token — las tareas ya están ahí.
+- Para empezar de cero en otro equipo: basta abrir la URL — las tareas ya están ahí; solo agrega el token si vas a editar.

@@ -2341,6 +2341,32 @@ const githubSync = (function(){
   function configured(){ const c=cfg(); return !!(c.owner && c.repo); }
   function canWrite(){ const c=cfg(); return !!(c.owner && c.repo && c.token); }
 
+  // ── Auto-detección de owner/repo desde la URL de Pages ──
+  // Si se abre https://<owner>.github.io/<repo>/ en cualquier computador,
+  // se configuran solos owner+rama → lectura directa sin pedir nada.
+  // El token solo sigue siendo necesario para GUARDAR (una vez por navegador).
+  function detectarDesdeURL(){
+    try{
+      const c = cfg();
+      if(c.owner && c.repo) return false; // ya configurado manualmente: no pisar
+      const m = location.host.match(/^([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)\.github\.io$/i);
+      if(!m) return false; // dominio custom o localhost → sin detección
+      const owner = m[1];
+      const segs = location.pathname.split('/').filter(Boolean);
+      let repo = '';
+      if(segs.length){
+        const s0 = segs[0];
+        if(!/^[^./]+\.[a-z0-9]{2,}$/i.test(s0) && !/^index\.html?$/i.test(s0)) repo = s0; // primer segmento sin extensión = subcarpeta del repo
+      }
+      if(!repo) return false; // página principal de usuario: no se puede inferir el repo
+      localStorage.setItem(LS.owner, owner);
+      localStorage.setItem(LS.repo, repo);
+      if(!localStorage.getItem(LS.branch)) localStorage.setItem(LS.branch, 'main');
+      console.log('[gh] auto-detectado desde la URL:', owner+'/'+repo+' @ main (lectura sin token)');
+      return true;
+    }catch(e){ console.warn('[gh] detección de URL falló:', e.message); return false; }
+  }
+
   // ── Construir payload en el mismo formato que datos_T3.json ──
   function buildPayload(){
     const tk = (typeof getTrimestreKey==='function') ? getTrimestreKey() : 'T3';
@@ -2517,7 +2543,7 @@ const githubSync = (function(){
     window.addEventListener('pagehide', ()=>{ try{ if(canWrite()) push('sync al cerrar'); }catch(e){} });
   }
 
-  return { load, push, configured, canWrite, schedulePush, setPill, installUI, installHook, buildPayload, cfg, mostrarBannerGh, clearBannerGh, markLoaded };
+  return { load, push, configured, canWrite, schedulePush, setPill, installUI, installHook, buildPayload, cfg, mostrarBannerGh, clearBannerGh, markLoaded, detectarDesdeURL };
 })();
 
 /* ===== Init ===== */
@@ -2534,8 +2560,12 @@ document.getElementById('themeToggle').onclick = toggleTheme;
   githubSync.installUI();
   githubSync.installHook();
 
-  // Conectar la carpeta del HTML (si ya fue autorizada antes: sin pedir nada)
-  await conectarAutoGuardar(false);
+  // Auto-detectar el repo desde la URL de Pages → en cualquier computador se carga solo
+  const ghAuto = githubSync.detectarDesdeURL();
+
+  // Conectar la carpeta del HTML (solo si NO hay nube configurada: evita el banner "Autorizar carpeta")
+  if(githubSync.configured()){ _autoDirHandle = null; }
+  else { await conectarAutoGuardar(false); }
 
   const aplicarDatos = function(data, origen){
     tareas = (data.tareas||[]).map(t => {
