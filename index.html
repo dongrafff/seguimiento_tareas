@@ -100,6 +100,12 @@
   .estado-cell{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .btn-detalle{cursor:pointer;border:1px solid var(--line);background:var(--panel-2);color:var(--accent);border-radius:6px;font-size:11px;font-weight:600;padding:3px 9px;white-space:nowrap}
   .btn-detalle:hover{border-color:var(--accent);background:var(--accent-soft)}
+  /* Resumen de datos dentro del modal de detalle */
+  #detalleResumen{margin-bottom:12px;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:12px}
+  #detalleResumen .res-row{display:flex;gap:10px;padding:6px 12px;border-bottom:1px solid var(--line)}
+  #detalleResumen .res-row:last-child{border-bottom:none}
+  #detalleResumen .res-k{flex:0 0 130px;color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.4px;padding-top:1px}
+  #detalleResumen .res-v{flex:1;word-break:break-word}
   .detalle-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
   .detalle-texto{background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:13px 15px;margin:0 0 4px;max-height:50vh;overflow:auto;white-space:pre-wrap;word-break:break-word;font-family:var(--sans);font-size:13px;line-height:1.55;color:var(--txt)}
   .dias{font-family:var(--mono);font-size:12px;color:var(--muted)}
@@ -430,7 +436,7 @@
 
     <!-- Listado -->
     <div class="card">
-      <h2>Tareas asignadas</h2>
+      <h2 id="listadoTit">Tareas asignadas</h2>
       <div class="toolbar">
         <input id="buscar" placeholder="Buscar por Contraparte o tarea..." oninput="render()">
         <select id="filtroEstado" onchange="render()">
@@ -439,6 +445,7 @@
           <option value="pend">Pendiente</option>
           <option value="curso">En curso</option>
           <option value="list">Lista</option>
+          <option value="comp">✅ Completadas</option>
           <option value="venc">Vencida</option>
         </select>
         <select id="filtroPrioridad" onchange="render()">
@@ -551,6 +558,7 @@
     <div id="detalleCod" class="detalle-cod"></div>
     <!-- NUEVO: Mostrar categoría y dependencia en detalle -->
     <div id="detalleMeta" style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px"></div>
+    <div id="detalleResumen"></div>
     <pre id="detalleTexto" class="detalle-texto"></pre>
     <div id="detalleImg" class="detalle-img" style="display:none">
       <img id="detalleImgTag" alt="Imagen adjunta de la tarea">
@@ -830,9 +838,10 @@ const estadoTxt = {pend:'Pendiente',curso:'En curso',list:'Lista',venc:'Vencida'
 // El listado "Tareas asignadas" muestra solo tareas activas (pendiente, en curso, vencida);
 // las terminadas ("Lista") recién aparecen con el filtro "Todos los estados".
 const ESTADOS_ACTIVOS = ['pend','curso','venc'];
-function filtroEstadoOK(est, fe){
-  if(fe==='') return ESTADOS_ACTIVOS.includes(est);
+function filtroEstadoOK(est, t, fe){
+  if(fe==='') return !t.completada && ESTADOS_ACTIVOS.includes(est); // listado asignadas: excluye completadas
   if(fe==='all') return true;
+  if(fe==='comp') return !!t.completada;                            // menú Completadas
   return est===fe;
 }
 
@@ -1177,7 +1186,7 @@ function abrirEdicion(uid){
   editId = uid;
   eId.value=t.contraparte; eLetra.value=t.letra; eDias.value=t.dias;
   eInicio.value=t.inicio; eDetalle.value=t.detalle||'';
-  eEstado.value = t.completada?'list':(t.iniciada?'curso':'pend');
+  eEstado.value = t.completada?'list':(t.iniciada?'curso':'pend'); // el modal usa 'list' = completada (su propio semántica)
   ePrioridad.value = t.prioridad || 'med';
   eRecordar.value = t.recordar || 2;
   // NUEVO: trimestre y dependencia
@@ -1258,6 +1267,30 @@ function verDetalle(uid){
   }
   meta.innerHTML = metaHtml;
   meta.style.display = metaHtml ? 'flex' : 'none';
+  // Resumen estructurado: siempre visible, aunque la tarea no tenga descripción escrita
+  const resBox = document.getElementById('detalleResumen');
+  const est = estadoDe(t);
+  const prioLabel = {high:'🔴 Alta', med:'🟡 Media', low:'🟢 Baja'}[t.prioridad] || '—';
+  const r = diasRestantes(t);
+  let estadoStr;
+  if(t.completada) estadoStr = '✅ Completada';
+  else if(est==='venc') estadoStr = `⚠ Vencida (${Math.abs(r)}d de atraso)`;
+  else if(est==='curso') estadoStr = 'En curso';
+  else estadoStr = 'Pendiente';
+  const fin = fechaFin(t);
+  const filas = [
+    ['Estado', `<span class="pill ${est}">${estadoStr}</span>`],
+    ['Prioridad', prioLabel],
+    ['Plazo', `${t.dias} día(s)`],
+    ['Inicio', t.inicio ? fmtFecha(new Date(t.inicio+'T00:00:00')) : '—'],
+    ['Vencimiento', fmtFecha(fin)],
+  ];
+  if(t.trimestre) filas.push(['Trimestre', trimestreLabels[t.trimestre] || t.trimestre]);
+  if(t.dependencia) filas.push(['Depende de', t.dependencia]);
+  const tareasDependientes = tareas.filter(x => x.dependencia === t.codigo);
+  if(tareasDependientes.length) filas.push(['La dependen', `${tareasDependientes.map(d=>d.letra).join(', ')}`]);
+  if(t.comentarios && t.comentarios.length) filas.push(['Comentarios', `💬 ${t.comentarios.length} (ver en Edición)`]);
+  resBox.innerHTML = filas.map(([k,v]) => `<div class="res-row"><div class="res-k">${k}</div><div class="res-v">${v}</div></div>`).join('');
   document.getElementById('detalleTexto').textContent = detalleActual;
   document.getElementById('detalleTexto').style.display = detalleActual ? 'block' : 'none';
   const imgBox = document.getElementById('detalleImg');
@@ -1345,7 +1378,7 @@ function toggleSelTodas(on){
   const ft = filtroTrimestre.value;
   const visibles = tareas.filter(t=>{
     const est = estadoDe(t);
-    if(!filtroEstadoOK(est, fe)) return false;
+    if(!filtroEstadoOK(est, t, fe)) return false;
     if(fp && t.prioridad!==fp) return false;
     if(ft && t.trimestre!==ft) return false;
     if(q && !((t.contraparte+'').toLowerCase().includes(q) || t.letra.toLowerCase().includes(q))) return false;
@@ -1389,7 +1422,7 @@ function render(){
   tbody.innerHTML='';
   let visibles = tareas.filter(t=>{
     const est = estadoDe(t);
-    if(!filtroEstadoOK(est, fe)) return false;
+    if(!filtroEstadoOK(est, t, fe)) return false;
     if(fp && t.prioridad!==fp) return false;
     if(ft && t.trimestre!==ft) return false;
     if(q && !((t.contraparte+'').toLowerCase().includes(q) || t.letra.toLowerCase().includes(q))) return false;
@@ -1403,6 +1436,9 @@ function render(){
   });
 
   document.getElementById('empty').style.display = visibles.length?'none':'block';
+  // Título del listado según el filtro de estado (menú "Completadas")
+  const titMap = {comp:'✅ Tareas completadas'};
+  document.getElementById('listadoTit').textContent = titMap[fe] || 'Tareas asignadas';
 
   for(const t of visibles){
     const est = estadoDe(t);
@@ -1444,8 +1480,8 @@ function render(){
       <td class="dias">${t.dias}d · vence ${fmtFecha(fechaFin(t))}</td>
       <td class="${diasCls}">${diasStr}</td>
       <td><div class="estado-cell">
-        <span class="pill ${est}">${estadoTxt[est]}${est==='venc'?' ⚠':''}</span>
-        ${(t.detalle || t.imagen) ? `<button class="btn-detalle" title="Ver detalle" onclick="verDetalle('${t.uid}')">📄 Detalle${t.imagen?' 🖼':''}</button>` : ''}
+        <span class="pill ${est}">${t.completada?'✅ Completada':estadoTxt[est]+(est==='venc'?' ⚠':'')}</span>
+        <button class="btn-detalle" title="Ver detalle de la tarea" onclick="verDetalle('${t.uid}')">📄 Detalle${t.imagen?' 🖼':''}</button>
       </div></td>
       <td><div class="acts">
         <button class="btn-sm" onclick="abrirEdicion('${t.uid}')">Editar</button>
