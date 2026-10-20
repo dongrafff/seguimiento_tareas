@@ -1,6 +1,6 @@
 {
   "version": "5.0",
-  "exportado": "2026-10-20T15:20:09.597Z",
+  "exportado": "2026-10-20T15:20:19.186Z",
   "trimestre": "T4",
   "origen": "github-sync",
   "tareas": [
@@ -129,22 +129,62 @@
       "320401",
       "320501",
       "320601",
-      "SEG-080106-20260730-66CC;080106;Faltan mesos L 01-02;2026-07-30;5;Pendiente;med;T3;;",
-      "SEG-080401-20260730-0FEE;080401;falta mes L 01 al 06;2026-07-30;5;Pendiente;med;T3;;",
-      "SEG-320101-20260730-5A61;320101;Falan meses A-E;2026-07-30;5;Pendiente;med;T3;;FAltan meses 01 02 03 para matriz A Faltan meses 01 02 03 04 05 06 matriz E",
-      "SEG-050201-20260802-24B8;050201;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
-      "SEG-050401-20260802-49BB;050401;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
-      "SEG-050501-20260802-FB91;050501;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
-      "SEG-050701-20260802-CB81;050701;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
-      "SEG-050901-20260802-AB64;050901;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
-      "SEG-051001-20260802-1AC7;051001;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
-      "SEG-053501-20260802-5181;053501;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
       "SEG-080501-20260802-29AA;080501;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes",
       "SEG-320501-20260802-99C5;320501;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes"
     ]
   },
   "plantillas": [],
   "auditLog": [
+    {
+      "time": "2026-10-20T15:20:16.664Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-053501-20260802-5181;053501;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:15.029Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-051001-20260802-1AC7;051001;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:13.356Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-050901-20260802-AB64;050901;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:11.615Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-050501-20260802-FB91;050501;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:10.056Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-050701-20260802-CB81;050701;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:08.596Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-050401-20260802-49BB;050401;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:07.051Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-050201-20260802-24B8;050201;meses faltantes;2026-08-02;5;Pendiente;med;T3;;mese faltantes eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:05.556Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-320101-20260730-5A61;320101;Falan meses A-E;2026-07-30;5;Pendiente;med;T3;;FAltan meses 01 02 03 para matriz A Faltan meses 01 02 03 04 05 06 matriz E eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:02.136Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-080401-20260730-0FEE;080401;falta mes L 01 al 06;2026-07-30;5;Pendiente;med;T3;; eliminada del listado"
+    },
+    {
+      "time": "2026-10-20T15:20:00.234Z",
+      "action": "LISTADO",
+      "detail": "Contraparte SEG-080106-20260730-66CC;080106;Faltan mesos L 01-02;2026-07-30;5;Pendiente;med;T3;; eliminada del listado"
+    },
     {
       "time": "2026-10-20T17:15:29.797Z",
       "action": "CREAR",
